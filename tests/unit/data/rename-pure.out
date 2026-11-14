@@ -1,0 +1,7 @@
+file old=old.c new=renamed.c
+flags rename
+line_ops renamed file: whole-file operations only
+hdr diff --git a/old.c b/renamed.c
+hdr similarity index 100%
+hdr rename from old.c
+hdr rename to renamed.c

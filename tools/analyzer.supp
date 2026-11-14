@@ -1,0 +1,14 @@
+# Findings of gcc -fanalyzer that were checked and are not bugs, as
+# "file: text of the warning". Keep each with its reason.
+#
+# run_cmd: every pipe end is closed on every path (close_pair, and the
+# poll loop); the analyzer does not follow close_pair.
+src/git.c: leak of file descriptor 'pout[0]'
+src/git.c: leak of file descriptor 'pout[1]'
+# run_cmd: pin[1] is only polled (and written) while it is >= 0.
+src/git.c: 'write' on possibly invalid file descriptor '-1'
+# defer_lines: check_series_commit sets full whenever it returns 0.
+src/series.c: use of NULL where non-null expected
+# sv_step: base is freed once, at out; gcc 13 counts the two
+# assignments of the if and else branches as two allocations.
+src/ui/sview.c: double-'free' of 'base'

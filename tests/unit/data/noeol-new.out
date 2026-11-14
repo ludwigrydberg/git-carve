@@ -1,0 +1,11 @@
+file old=eol.c new=eol.c
+flags
+line_ops yes
+hdr diff --git a/eol.c b/eol.c
+hdr index 422c2b7..0a207c0 100644
+hdr --- a/eol.c
+hdr +++ b/eol.c
+hunk -1,2 +1,2 section=''
+      1   1 |a|
+  -   2   0 |b|
+  +   0   2 |b| no_eol

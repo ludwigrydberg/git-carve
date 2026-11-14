@@ -1,0 +1,12 @@
+file old=rm.c new=rm.c
+flags
+line_ops yes
+hdr diff --git a/rm.c b/rm.c
+hdr index 6a90d1b..422c2b7 100644
+hdr --- a/rm.c
+hdr +++ b/rm.c
+hunk -1,4 +1,2 section=''
+      1   1 |a|
+  -   2   0 |X|
+  -   3   0 |Y|
+      4   2 |b|

@@ -1,0 +1,13 @@
+file old=blank.c new=blank.c
+flags
+line_ops yes
+hdr diff --git a/blank.c b/blank.c
+hdr index 068025d..b5d861f 100644
+hdr --- a/blank.c
+hdr +++ b/blank.c
+hunk -1,4 +1,4 section=''
+      1   1 |a|
+      2   2 ||
+      3   3 |b|
+  -   4   0 |c|
+  +   0   4 |C|

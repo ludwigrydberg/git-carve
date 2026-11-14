@@ -1,0 +1,2 @@
+# Golden diff fixtures must stay byte-exact (CRLF, no-EOL cases).
+tests/unit/data/** -text -diff

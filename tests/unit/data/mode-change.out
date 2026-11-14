@@ -1,0 +1,6 @@
+file old=m.sh new=m.sh
+flags mode_change mode_only
+line_ops mode change only: whole-file operations only
+hdr diff --git a/m.sh b/m.sh
+hdr old mode 100644
+hdr new mode 100755

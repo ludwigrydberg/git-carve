@@ -1,0 +1,6 @@
+file old=(null) new=empty.c
+flags new
+line_ops no content changes: whole-file operations only
+hdr diff --git a/empty.c b/empty.c
+hdr new file mode 100644
+hdr index 0000000..e69de29

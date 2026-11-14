@@ -1,0 +1,12 @@
+diff --git a/old.c b/renamed.c
+similarity index 96%
+rename from old.c
+rename to renamed.c
+index ac9837c..0b66eaa 100644
+--- a/old.c
++++ b/renamed.c
+@@ -28,3 +28,4 @@ line 27
+ line 28
+ line 29
+ line 30
++line 31

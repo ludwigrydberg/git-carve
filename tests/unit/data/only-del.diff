@@ -1,0 +1,9 @@
+diff --git a/rm.c b/rm.c
+index 6a90d1b..422c2b7 100644
+--- a/rm.c
++++ b/rm.c
+@@ -1,4 +1,2 @@
+ a
+-X
+-Y
+ b

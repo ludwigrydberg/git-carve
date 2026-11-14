@@ -1,0 +1,9 @@
+diff --git a/m.sh b/m.sh
+old mode 100644
+new mode 100755
+index 8b2fe54..86fe00e
+--- a/m.sh
++++ b/m.sh
+@@ -1 +1,2 @@
+ echo hi
++echo there

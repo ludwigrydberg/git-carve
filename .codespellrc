@@ -1,0 +1,5 @@
+[codespell]
+# the test fixtures misspell on purpose (a typo to fix in the demo,
+# diffs of made-up text); short names that are words elsewhere
+skip = ./tests/unit/data,./coverage,*.png,*.gif
+ignore-words-list = ot,nd,ser,devcie,retrun,statics,te,ba,fo,mis

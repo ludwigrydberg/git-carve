@@ -1,0 +1,11 @@
+diff --git a/f.c b/f.c
+index c4352f8..6e292a6 100644
+--- a/f.c
++++ b/f.c
+@@ -3 +3 @@ line 2
+-line 3
++line three
+@@ -15 +14,0 @@ line 14
+-line 15
+@@ -18,0 +18 @@ line 18
++line 18b

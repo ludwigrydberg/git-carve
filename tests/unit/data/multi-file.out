@@ -1,0 +1,20 @@
+file old=a.c new=a.c
+flags
+line_ops yes
+hdr diff --git a/a.c b/a.c
+hdr index 7898192..f70f10e 100644
+hdr --- a/a.c
+hdr +++ b/a.c
+hunk -1,1 +1,1 section=''
+  -   1   0 |a|
+  +   0   1 |A|
+file old=b.c new=b.c
+flags
+line_ops yes
+hdr diff --git a/b.c b/b.c
+hdr index 6178079..223b783 100644
+hdr --- a/b.c
+hdr +++ b/b.c
+hunk -1,1 +1,1 section=''
+  -   1   0 |b|
+  +   0   1 |B|

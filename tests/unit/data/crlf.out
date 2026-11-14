@@ -1,0 +1,12 @@
+file old=crlf.c new=crlf.c
+flags
+line_ops yes
+hdr diff --git a/crlf.c b/crlf.c
+hdr index e1587ff..103b2f6 100644
+hdr --- a/crlf.c
+hdr +++ b/crlf.c
+hunk -1,3 +1,3 section=''
+      1   1 |one\r|
+  -   2   0 |two\r|
+  +   0   2 |TWO\r|
+      3   3 |three\r|

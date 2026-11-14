@@ -1,0 +1,14 @@
+diff --git a/a.c b/a.c
+index 7898192..f70f10e 100644
+--- a/a.c
++++ b/a.c
+@@ -1 +1 @@
+-a
++A
+diff --git a/b.c b/b.c
+index 6178079..223b783 100644
+--- a/b.c
++++ b/b.c
+@@ -1 +1 @@
+-b
++B

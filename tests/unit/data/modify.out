@@ -1,0 +1,26 @@
+file old=f.c new=f.c
+flags
+line_ops yes
+hdr diff --git a/f.c b/f.c
+hdr index c4352f8..6e292a6 100644
+hdr --- a/f.c
+hdr +++ b/f.c
+hunk -1,6 +1,6 section=''
+      1   1 |line 1|
+      2   2 |line 2|
+  -   3   0 |line 3|
+  +   0   3 |line three|
+      4   4 |line 4|
+      5   5 |line 5|
+      6   6 |line 6|
+hunk -12,9 +12,9 section='line 11'
+     12  12 |line 12|
+     13  13 |line 13|
+     14  14 |line 14|
+  -  15   0 |line 15|
+     16  15 |line 16|
+     17  16 |line 17|
+     18  17 |line 18|
+  +   0  18 |line 18b|
+     19  19 |line 19|
+     20  20 |line 20|

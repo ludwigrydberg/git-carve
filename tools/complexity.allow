@@ -1,0 +1,13 @@
+# Functions above the complexity limit (lizard CCN 40) that are known:
+# the list may only shrink. diff_parse is a state machine with golden
+# tests; the others are to be split.
+diff_parse
+handle_key
+dp_load
+list_overlay
+move_by_rebase
+draw
+reload_from
+blame_change
+staged_change_onto
+exchange

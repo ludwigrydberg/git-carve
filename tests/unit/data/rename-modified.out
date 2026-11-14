@@ -1,0 +1,15 @@
+file old=old.c new=renamed.c
+flags rename
+line_ops renamed file: whole-file operations only
+hdr diff --git a/old.c b/renamed.c
+hdr similarity index 96%
+hdr rename from old.c
+hdr rename to renamed.c
+hdr index ac9837c..0b66eaa 100644
+hdr --- a/old.c
+hdr +++ b/renamed.c
+hunk -28,3 +28,4 section='line 27'
+     28  28 |line 28|
+     29  29 |line 29|
+     30  30 |line 30|
+  +   0  31 |line 31|

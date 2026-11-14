@@ -1,0 +1,361 @@
+.\" SPDX-License-Identifier: MIT
+.TH GIT-CARVE-CLI 1 "2026-11-14" "git-carve 1.0.0" "Git Manual"
+.SH NAME
+git-carve-cli \- the operations of git carve as commands
+.SH SYNOPSIS
+.B git-carve-cli
+.I command
+.RI [ args ]
+.SH DESCRIPTION
+Every operation of the
+.BR git-carve (1)
+terminal UI as a command, the interface its test suite drives. It is
+internal and not kept stable, and
+.B make install
+leaves it out
+.RB ( "make install\-cli"
+installs it). The exit status is 0 on success, and otherwise non-zero
+with a one-line message on standard error. An operation that stops on a
+conflict also exits non-zero.
+.SH SELECTIONS
+Line operations take a selection naming lines by the numbers
+.B git-carve-cli diff
+(or
+.BR "git-carve-cli show" )
+prints:
+.TP
+.BI n N
+New-side line
+.I N
+(an added line).
+.TP
+.BI o N
+Old-side line
+.I N
+(a removed line).
+.TP
+.BI n A \- B ", o" A \- B
+A range takes every changed line whose number lies in it. A removed
+line counts as sitting at the number of the new line after it, and for
+.B o
+an added line at the old line before it. A range then takes both
+halves of a changed line.
+.PP
+Items are separated by commas, for example
+.B o12,n12
+(the old and new version of line 12) or
+.BR n250-260,n300 .
+.B new:
+and
+.B old:
+are long forms of the prefixes
+.RB ( old:12,new:12 ).
+No selection starts with a dash, and none is mistaken for an option.
+Options may appear anywhere, and
+.B \-\-
+ends them for a path that starts with a dash.
+.SH COMMANDS
+.TP
+.BR diff " [" \-\-cached "] [" \-U \fIn\fR "] [" \-W "] [" \-w "] \fIpath\fR"
+Annotated unstaged (or staged) diff with old and new line numbers.
+Untracked files are shown as new files.
+The options set the context lines, show whole functions and ignore
+whitespace, as for
+.BR "git diff" .
+The line numbers stay valid for the other commands.
+.TP
+.BI "stage " "path sel" ", unstage " "path sel"
+Stage or unstage the selected lines. Unstage uses the numbers of
+.BR "diff \-\-cached" .
+.TP
+.BI "stage-file " path... ", unstage-file " path...
+Whole files.
+.TP
+.B renames
+List staged renames and renames in the work tree, with their
+similarity.
+.TP
+.BI "stage-move " "from to" ", unstage-move " "from to"
+Stage only the move of a rename, or unstage both halves of a rename.
+Line numbers of a renamed file (in
+.BR diff ,
+.BR stage ,
+.BR unstage )
+refer to its diff against the old file, before and after the move is
+staged.
+.TP
+.BR set-staged " [" \-\-cached "] \fIpath sel file\fR"
+Replace the selected region of the index entry with the content of
+.I file
+(\fB\-\fR for stdin). Without
+.B \-\-cached
+the region is taken from the unstaged diff as it will look once the
+selection is staged. With it the region comes from the staged diff as
+it is. This stages content that never existed on disk, such as an
+intermediate version of a call between a rename and a signature change.
+.TP
+.BR "set-staged \-\-print" " [" \-\-cached "] \fIpath sel\fR"
+Print that region.
+.TP
+.BR commit " [" \-m " \fImsg\fR | " \-F " \fIfile\fR | " \-\-draft "] [" \-\-amend "] [" \-s " | " \-\-no\-signoff ]
+Commit what is staged.
+.B \-\-draft
+commits with the message being written (see
+.BR message )
+and then empties it. During a split the editor starts from a
+template (see SPLITTING).
+Without
+.B \-m
+or
+.BR \-F ,
+the editor starts with the subsystem prefix the history of the staged
+files uses most, such as
+.BR "net: phy: " .
+The later commits of a split do the same.
+.B carve.suggestPrefix
+set to false turns that off.
+.B \-s
+adds the committer's
+.B Signed-off-by
+trailer unless that exact trailer is already in the message. git's own
+.B \-s
+only looks at the last trailer and would double a sign-off before a
+.BR Change-Id .
+This holds for amends and split templates too.
+.TP
+.BR message " [" \-\-set " \fIfile\fR | " \-\-clear " | " \-\-template ]
+The commit message being written, the TUI's Message pane
+.RB ( $GIT_DIR/CARVE_MESSAGE ):
+print it, set it from a file (- for stdin), clear it, or print what an
+empty one starts from (the editor template of the next commit).
+.TP
+.BR split " [\fIcommit\fR]"
+Split HEAD or an older commit. Its changes become unstaged, to be
+staged and committed piece by piece. Merges, dirty trees and operations
+in progress are refused. Splitting a commit that the upstream already
+contains only warns.
+.TP
+.B split \-\-finish
+Allowed when nothing is left to stage and the new commits add up to the
+original commit's tree exactly, or to that tree without the lines
+discarded (
+.BR d ,
+.BR discard )
+during the split: those are taken out of the commit on purpose. A file
+edited during the split cannot give lines away that way (commit or
+restore the edits first), and splitting an older commit does not allow
+it. For an older commit, the commits above it are replayed and must keep
+their trees.
+.TP
+.BR "split \-\-abort" " [" \-\-force ]
+Restore the original commit, index and work tree exactly. Refused if
+the work tree has changes that are not part of the original commit,
+unless
+.BR \-\-force .
+Lines discarded during the split come back.
+If the split was started where a rebase of yours stopped and that rebase
+has moved on since (continued or aborted), resetting to the commit would
+throw its steps away: abort refuses, and
+.B \-\-force
+only forgets the split and changes nothing else.
+.TP
+.B split \-\-status
+Show the split in progress.
+.TP
+.BI "show " commit " \fR[\fIpath\fR]"
+Annotated diff of one commit's changes to
+.I path
+(for
+.BR defer ).
+Without a path it lists the files the commit changes, one per line with a
+status letter
+.RB ( A ,
+.BR M ,
+.BR D ,
+.BR T ,
+and
+.B R
+with the old and the new path for a rename, whose diff is between the
+old and the new content), as the Commit section lists them.
+.TP
+.BI "fixup " commit ", fixup \-\-amend " "\fR[\fB\-m \fImsg\fR | \fB\-F \fIfile\fR] " commit
+A commit to be squashed into
+.I commit
+later, as
+.B git commit \-\-fixup
+makes it:
+.B fixup! <subject>
+holding what is staged (refused with nothing staged), or with
+.BR \-\-amend ,
+.B amend! <subject>
+followed by the new message of
+.I commit
+(given, read from
+.IR file ,
+or in the editor starting from its current message), holding what is
+staged if anything. The amend! commit is written by git carve, the same
+as git 2.32's
+.B \-\-fixup=amend:
+makes it. Nothing is rewritten.
+.TP
+.BI "squash " "\fR[\fB\-\-dry\-run\fR] [\fIbase\fR]"
+Squash the
+.BR fixup! ,
+.B amend!
+and
+.B squash!
+commits of the series
+.RI ( base ..HEAD,
+by default @{upstream}..HEAD, without an upstream the last 200 commits)
+into their commits, as
+.B git rebase \-\-autosquash
+does. Each goes right after the commit its subject names, by subject, by
+an id prefix or by the start of a subject, with repeated prefixes read
+through. A fixup keeps the commit's message, an amend! replaces it with
+its own on every git version, and a squash! adds its own to it.
+It lists each fixup and its commit first, and
+.B \-\-dry\-run
+stops there. A fixup whose commit is not in the series stays where it
+is. The rebase starts at the oldest commit changed. The series ends in
+the same tree as before, else nothing is changed. Staged and unstaged
+changes stay as they are. A conflict stops. Resolve it, stage, and run
+.B git-carve-cli continue
+or
+.B abort
+to put everything back. Merges in the way are refused.
+.TP
+.BI "fixup-to " "commit path sel" ", fixup-to \-\-cached " commit
+Move the selected unstaged lines (or everything staged) into an older
+commit. Commits above it that touch the same lines stop with a
+conflict. Resolve, stage and run
+.BR "git-carve-cli continue" ,
+or
+.BR "git-carve-cli abort" .
+Your other work tree changes are kept exactly as they are. If the
+change touches lines that the target does not have (a later commit
+added them), nothing is changed and the command fails.
+Files renamed since the target are followed: the change lands in the
+file under its old name. A rename that is moved always takes both
+halves.
+While splitting HEAD, before the first commit of the split,
+.B fixup\-to HEAD
+moves a part of the split commit into the commit below it, such as a
+change in patch 3 that belongs in patch 2. Older targets wait until the
+split is finished.
+.TP
+.BR defer " \fIcommit path sel\fR [" \-\-after " \fIcommit\fR] [" \-m " \fImsg\fR]"
+Move the selected lines of an older commit's diff out of it into a new
+commit right after it (or after a later commit). The new commit's tree
+equals the original commit's, and commits above keep their trees.
+.TP
+.BR gc " [" \-\-force ]
+Remove what git carve left behind and is provably dead. That is state files
+with no operation in progress, temporary indexes and worktrees whose
+process is gone, undo entries beyond
+.BR carve.undoLimit ,
+and refs git carve no longer uses. It also folds the undo steps of an
+operation that ended outside git carve.
+A work-tree snapshot or parked changes left behind may be the only copy
+of someone's work. They are listed with how to get them back and are
+never removed. Without
+.B \-\-force
+it is a dry run.
+Everything git carve keeps is in refs, and
+.BR "git gc" ,
+.B git clean
+and
+.B git worktree prune
+never take it, also in the middle of an operation.
+.TP
+.B version
+Print the version.
+.TP
+.B prefix
+Print the subsystem prefix the history of the staged files uses most.
+.TP
+.BR blame " [" \-\-cached "] \fIpath\fR [\fIsel\fR]"
+The commits that last touched the lines of the change to
+.I path
+(the selected lines, else all, and the staged ones with
+.BR \-\-cached ),
+as the commit list's
+.B b
+finds them: one line each, most lines first, as
+.IR lines / blamed " " "id subject" .
+.TP
+.BR absorb " [" \-\-apply "] [\fIrange\fR]"
+For every unstaged change block, find the commit of the series
+(default
+.BR @{upstream}..HEAD )
+that last touched its lines. It runs
+.B "git blame \-M"
+once per file, with
+.B \-C
+too when
+.B carve.absorbCopies
+is set, and for an insertion it looks at the lines around it. With
+.B \-\-apply
+it moves each block there like
+.BR fixup-to ,
+with the same result checks. Blocks whose lines come from several
+commits or from outside the series stay and are listed, and whole-file
+changes stay too. Without
+.B \-\-apply
+it only prints the plan. Nothing may be staged. If a move stops on a
+conflict, resolve it and continue, then absorb again for the rest.
+.TP
+.BR continue ", " abort " [" \-\-force "], " status
+Continue, abort or show the operation in progress.
+.TP
+.BR resolve " " \-\-ours " | " \-\-theirs " \fIpath\fR [\fIn\fR]"
+Take one side of conflict
+.I n
+(counted from 1 in the file), or of all conflicts of the file
+(git checkout \-\-ours / \-\-theirs). The file is staged once no conflict
+marker is left in it.
+.B git checkout \-m
+.I path
+brings the conflicts back.
+.TP
+.BR substitute " \fIpath sel\fR s/\fIpattern\fR/\fIreplacement\fR/[gi]" ,
+.BR "substitute \-\-all" " \fIpath\fR s/.../"
+Replace in the work-tree lines
+.I sel
+(new-side numbers, the work tree's own, and old-side ones are refused),
+or in the whole file, as the TUI's
+.B :s
+does. Line ends are kept and the index is not touched. Undo puts the
+file back.
+.TP
+.BR ignore " \fIpath\fR..."
+Add untracked files to
+.BR .git/info/exclude ,
+each matched exactly from the top. git then no longer lists them.
+Tracked files are refused.
+.TP
+.BR remove " \fIpath\fR..."
+.BR "git rm" :
+delete the files from the work tree and stage their deletion, local
+changes included (undo brings them back). Untracked files are refused
+.RB ( discard\-file
+deletes them), and a split in progress is refused too.
+.TP
+.BR discard " \fIpath sel\fR"
+Throw the selected unstaged lines away from the work tree. The index
+is not touched.
+.TP
+.BR discard-file " \fIpath\fR..."
+Throw all unstaged changes of the files away by checking out the index
+version. An untracked or intent-to-add file is deleted. Both are
+recorded for
+.BR undo ,
+and undo puts the exact bytes and mode back.
+.TP
+.BR undo " [" \-\-force ]
+Undo the last change to the index or HEAD (see
+.BR UNDO ).
+.TP
+.B undo \-\-list
+What can be undone, newest first.
+.SH SEE ALSO
+.BR git-carve (1)

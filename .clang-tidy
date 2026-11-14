@@ -1,0 +1,57 @@
+# clang-tidy for git-carve: what is checked, and the C and kernel idioms
+# this code base uses on purpose (each with why it is off).
+Checks: >
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-avoid-unconditional-preprocessor-if,
+  readability-duplicate-include,
+  readability-inconsistent-declaration-parameter-name,
+  readability-inconsistent-ifelse-braces,
+  readability-misleading-indentation,
+  readability-redundant-*,
+  readability-use-concise-preprocessor-directives,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-signed-bitwise,
+  -bugprone-suspicious-string-compare,
+  -bugprone-assignment-in-if-condition,
+  -bugprone-assignment-in-selection-statement,
+  -cert-exp45-c,
+  -bugprone-narrowing-conversions,
+  -misc-unused-parameters,
+  -misc-no-recursion,
+  -misc-include-cleaner,
+  -cert-err33-c,
+  -cert-msc30-c,
+  -cert-msc50-cpp,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-optin.performance.Padding,
+  -clang-analyzer-optin.core.UnconditionalVAArg
+# Off, and why:
+# easily-swappable-parameters: (repo, path, sel) style signatures are
+#   the API.
+# multi-level-implicit-pointer-conversion: free() and qsort() of char **.
+# signed-bitwise: ncurses' attribute flags (A_BOLD | COLOR_PAIR(n)).
+# suspicious-string-compare: !strcmp(a, b), as in the kernel and git.
+# assignment-in-if-condition, -selection-statement, cert-exp45-c:
+#   if ((p = f())), as in the kernel and git.
+# narrowing-conversions: -Wconversion covers what matters.
+# unused-parameters: callbacks share signatures (-Wno-unused-parameter).
+# no-recursion: the few recursive helpers are bounded by their input.
+# include-cleaner: headers include what their declarations need.
+# cert-err33-c: unchecked printf/fputs results to stdout.
+# cert-msc30-c, cert-msc50-cpp: rand() seeds the fuzz test only.
+# insecureAPI.DeprecatedOrUnsafeBufferHandling: snprintf and memcpy with
+#   bounds, flagged by name.
+# optin.performance.Padding: struct layout follows meaning, not size.
+# optin.core.UnconditionalVAArg: the git_* argument lists end in NULL,
+#   which the sentinel attribute in git.h checks at compile time.
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'src/.*'
+CheckOptions:
+  # ncurses' curses.h and unctrl.h include each other behind a guard.
+  misc-header-include-cycle.IgnoredFilesList: 'curses.h;unctrl.h'

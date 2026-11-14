@@ -1,0 +1,7 @@
+diff --git a/dir with space/fil é.c b/dir with space/fil é.c
+index 587be6b..975fbec 100644
+--- a/dir with space/fil é.c	
++++ b/dir with space/fil é.c	
+@@ -1 +1 @@
+-x
++y

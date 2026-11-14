@@ -1,0 +1,14 @@
+*.o
+*.a
+*.dSYM/
+/git-carve
+/git-carve-cli
+/.build-flags
+/tests/unit/test_*
+!/tests/unit/test_*.c
+/tests/fuzz/fuzz
+*.gcno
+*.gcda
+*.gcov
+/coverage/
+/coverage.build/

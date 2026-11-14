@@ -1,0 +1,10 @@
+file old=dir with space/fil é.c new=dir with space/fil é.c
+flags
+line_ops yes
+hdr diff --git a/dir with space/fil é.c b/dir with space/fil é.c
+hdr index 587be6b..975fbec 100644
+hdr --- a/dir with space/fil é.c	
+hdr +++ b/dir with space/fil é.c	
+hunk -1,1 +1,1 section=''
+  -   1   0 |x|
+  +   0   1 |y|

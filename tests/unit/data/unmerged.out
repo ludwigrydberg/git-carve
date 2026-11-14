@@ -1,0 +1,7 @@
+file old=f.c new=f.c
+flags combined
+line_ops unmerged path; resolve the conflict first
+hdr diff --cc f.c
+hdr index 4ae8ef0,718f4d2..0000000
+hdr --- a/f.c
+hdr +++ b/f.c

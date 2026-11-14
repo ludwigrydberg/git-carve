@@ -1,0 +1,12 @@
+file old=m.sh new=m.sh
+flags mode_change
+line_ops yes
+hdr diff --git a/m.sh b/m.sh
+hdr old mode 100644
+hdr new mode 100755
+hdr index 8b2fe54..86fe00e
+hdr --- a/m.sh
+hdr +++ b/m.sh
+hunk -1,1 +1,2 section=''
+      1   1 |echo hi|
+  +   0   2 |echo there|

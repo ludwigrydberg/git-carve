@@ -1,0 +1,9 @@
+diff --git a/eol.c b/eol.c
+index 422c2b7..0a207c0 100644
+--- a/eol.c
++++ b/eol.c
+@@ -1,2 +1,2 @@
+ a
+-b
++b
+\ No newline at end of file

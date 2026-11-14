@@ -1,0 +1,983 @@
+.\" SPDX-License-Identifier: MIT
+.TH GIT-CARVE 1 "2026-11-14" "git-carve 1.0.0" "Git Manual"
+.SH NAME
+git-carve \- carve changes into clean, one-change-per-commit series
+.SH SYNOPSIS
+.B git carve
+.RI [ base ..]
+.br
+.B git carve keys
+.br
+.B git carve
+.RB ( \-h " | " \-\-help " | " \-V " | " \-\-version )
+.SH DESCRIPTION
+.B git carve
+stages and unstages single lines, splits commits and moves changes
+between the commits of a series. Every commit then does one thing, and
+the series stays bisectable.
+It is a terminal UI. Everything is done with keys, and
+.B ?
+lists them.
+.PP
+git carve runs the
+.B git
+binary for everything, and your configuration, hooks and filters apply.
+Output it parses is protected against configuration that would change
+it, such as diff prefixes, colors, external diff drivers, textconv and
+quoting. Staging uses
+.B git apply --whitespace=nowarn
+to keep
+.B apply.whitespace=fix
+from altering staged content.
+.SH THE TERMINAL UI
+.B git carve
+.RI [ base ..]
+opens its panes, cycled with Tab and Shift-Tab:
+.BR Series ,
+.B Files
+(Staged, Unstaged and Untracked sections with status letters, in the
+order of
+.BR "git status" ),
+.B Message
+(the commit message being written) and
+.BR Diff ,
+the diff of the selected file. Diff lines show their old and new line
+numbers.
+.PP
+The Diff pane shows the diff of the section the cursor is in. A file of
+the Unstaged section shows its unstaged changes (the
+.B Unstaged
+pane below), a file of the Staged section its staged ones (the
+.B Staged
+pane), and a commit's file the commit's diff. Space moves a line from
+one to the other, and the file then shows in the other section. With
+.B carve.layout
+=
+.B two
+both diffs are shown, the Unstaged pane above the Staged pane.
+.PP
+The Message pane holds the commit message while you stage. It is
+read-only. In it
+.B e
+opens your editor on the message. An empty one starts from what
+.B c
+would start the editor with. That is the subject prefix, your sign-off
+and during a split the original message.
+.B c
+then commits with it, without the editor, and empties it. Without a
+message
+.B c
+opens the editor as before. The message is kept in
+.B $GIT_DIR/CARVE_MESSAGE
+(per worktree), and quitting does not lose it.
+When the Series pane shows a commit, the Message pane shows that
+commit's message
+.RB ( "Message of ~2" ),
+and
+.B e
+there gives it a new message, as
+.B r
+does.
+.B gc
+hides the pane or shows it again.
+.PP
+The Files pane groups each section's files by directory. A dim row
+names the directory, and its files below show their names. A path too
+long for the pane is cut in the middle, as file browsers do. Its first
+directory and its end stay
+.RB ( Documentation/\[u2026]/Requirements/ ,
+or
+.B ~
+without UTF-8), and
+.B h
+shows the rest. Sections are rules in the colours of
+.BR "git status" ,
+with unstaged red, staged green and the commit shown cyan.
+.PP
+Unstaged lists tracked files only. Untracked files come last, folded
+to one row with their number, and a tree full of build output does not
+bury the changes. Enter (or l, Right) on that row lists them, and h
+(Left) or Enter folds them again. During a split the new files of the
+commit being split are untracked again. They are the work being split,
+and they are listed under Unstaged.
+.PP
+When an operation is refused or fails, a box in the middle of the
+screen says why, wrapped to the terminal, with what to do below the
+reason. Output of git that explains a failure, such as a commit hook's,
+is in the box too, and the arrow keys scroll it when it is long. Any
+other key closes the box and does nothing else. A key typed ahead never
+acts on a screen you have not read. Warnings, such as a key
+binding that could not be applied, come in the same box. Other
+messages, and searches or jumps that find nothing, use the bottom line.
+.PP
+Below
+.B carve.narrowWidth
+columns the panes stack. Series and Files take the whole width on top,
+with the message and the diff below.
+.PP
+The Series pane shows your branch, newest first. Your series is
+.BR @{upstream}..HEAD .
+Without an upstream it is the commits no remote-tracking branch has yet.
+.B "git carve HEAD~10.."
+gives another base. Absorb and squash use the same series. The pane
+starts with the work tree, then
+.BR HEAD ,
+.BR ~1 ,
+.B ~2
+and further. A divider marks where the series ends, with the upstream's
+name or "pushed", and
+.B M
+marks a merge. Each commit names the branches at it after its id, as
+.B "git log"
+does, with local branches green and remote-tracking ones red. The
+branch HEAD is on is in the top line. The pane's title says what the
+other panes show, the work tree, HEAD or a commit below it
+.RB ( "Series: ~2 below HEAD" ),
+and the upper diff pane's title names the commit
+.RB ( "Commit ~2: a.c" ).
+.B J
+and
+.B K
+move from any pane without checking anything out, and
+.B *
+marks the row shown. A commit's files come into the Files pane as a
+.B Commit
+section above your own changes, and its diff into the upper pane. Moving
+past the last commit loads
+.B carve.seriesStep
+older ones. With the cursor in it the pane widens to show whole
+subjects. The status line always has the whole subject of the commit
+shown. A clean work tree shows HEAD and changes in it show the work
+tree, until a row is chosen. Opening it is one
+.B git log
+whatever its size. Two columns in front of each diff row show the cursor
+.RB ( > )
+and a marked row
+.RB ( + )
+or a row of the range
+.RB ( * ),
+both on the cursor row. The pane title counts the marked lines.
+In a changed line paired with one on the other side (as partial staging
+pairs them), the changed words are shown in reverse video (bold and
+underlined without colours).
+Whitespace errors on added lines (trailing whitespace, spaces before a
+tab in the indent) are highlighted as by
+.BR "git diff" ,
+following
+.BR core.whitespace .
+.TP
+.BR j " / " k ", arrows"
+Move.
+.TP
+.BR gg " / " G ", Home / End"
+To the top / bottom.
+.TP
+.BR Ctrl-F " / " Ctrl-B ", " PgDn " / " PgUp
+A page down / up. In tmux with its default prefix,
+.B Ctrl-B
+reaches git carve when pressed twice.
+.TP
+.BR Ctrl-D " / " Ctrl-U
+Half a page down / up.
+.TP
+.BR Ctrl-E " / " Ctrl-Y
+Scroll the view a line down / up. The cursor keeps its line while it
+is in view.
+.TP
+.BR zt " / " zz " / " zb
+Scroll until the cursor line is at the top / middle / bottom.
+.TP
+.BR H " / " M " / " L
+The cursor to the top / middle / bottom line of the view.
+.TP
+.BR 0 " / " $
+Scroll long lines back to their start / to the end of the cursor line.
+.TP
+.BR + " (or " = ") / " \-
+More / fewer context lines, down to 0. Staging keeps working.
+.TP
+.B W
+Whole functions around the changes
+.RB ( "git diff \-W" )
+on / off.
+.TP
+.B w
+Ignore whitespace changes on / off. This is a view only. While it is on,
+line operations (stage, discard, fixup-to, and edit on a commit's
+lines) are refused. The pane
+titles show the options that differ from the default.
+.TP
+.BR h " / " l ", Left / Right"
+Show more of the left / right of long lines, as the view moves in
+.BR less .
+.B h
+brings the start of lines into view, and the text moves right.
+A mark at the edge of a row says that its text goes on there:
+.B \(fo
+on the left,
+.B \(fc
+on the right
+.RB ( <
+and
+.B >
+without UTF-8). In the Files pane long paths show their end at first
+(the file name), and
+.B h
+goes towards the start of the selected file and its directory's row. In
+the Series pane subjects show their start, and
+.B l
+goes towards the end of the selected one. The other rows stay as they
+are, and moving the cursor puts the row back.
+.TP
+.BR ] " / " [
+Next / previous hunk, or in an unmerged file's view the next / previous
+conflict.
+.TP
+.BR ) " / " (
+Next / previous block of changed lines.
+.TP
+.BR } " / " {
+From a diff pane, the next / previous file with changes in that pane,
+at its first change. All motions extend a
+.B v
+range.
+.TP
+.B Space
+Stage (Unstaged pane) or unstage (Staged pane) the current line or
+range. On a hunk header it takes the whole hunk, and on a diff that only
+allows whole-file operations the file. The cursor then goes on to the
+next changed line, and Space after Space goes through a block of
+changes.
+.TP
+.B v
+Start or stop a range selection.
+.TP
+.B m
+Mark or unmark the changed line under the cursor. While lines are
+marked,
+.BR Space ,
+.BR t ,
+and
+.B e
+on a commit's lines act on exactly the marked lines. They need not be
+next to each other, such as the old and new version of one line in a
+block where git lists all removals before the additions.
+.B gm
+marks a changed line together with the line it is paired with on the
+other side (the old and the new version of one line), or unmarks both.
+The status bar shows this shortcut when the diff cursor is on a paired line.
+.B Esc
+clears the marks.
+.TP
+.B R
+In the Files pane, delete the selected file and stage its deletion
+.RB ( "git rm" )
+after asking.
+.B u
+undoes it.
+.TP
+.B gd
+Load the diff of the selected file although it is not loaded on its own
+(see
+.BR "BIG FILES" ).
+.TP
+.B gi
+Add an untracked file to
+.B .git/info/exclude
+after asking. It is then not listed again.
+.TP
+.B a
+Select the whole hunk.
+.TP
+.BI : N ", :n" N ", :o" N
+Go to new-side line
+.IR N ,
+or old-side with
+.BR o .
+These are the same forms as selections.
+.TP
+.BI ":s/" pattern / replacement / "\fR[\fBgi\fR], :%s/" ...
+Replace in the work tree, as vim does. It acts on the marked lines, the
+range, or the line or hunk under the cursor of the Unstaged pane or of
+the commit shown (its line in the work tree). With
+.B %
+it acts on the whole file. The pattern is a POSIX extended regular
+expression. In the replacement
+.B &
+is the match and
+.BR \e1 .. \e9
+are its groups. The flags are
+.B g
+for every match on a line and
+.B i
+to ignore case.
+.B u
+undoes it. For a small edit without an editor, use for example
+.B :s/100/500/
+on a line of HEAD shown in the Commit section, then stage and amend.
+.TP
+.BR / ", " n ", " N
+Search the diffs of all changed files, then go to the next and previous
+hit. The search goes on into the next or previous file and wraps
+around. The Unstaged pane searches unstaged changes and the lines of
+conflicts, and the Staged pane staged ones. Untracked files are not
+searched. A pattern without capitals ignores case. A search that needs
+git shows that while it runs, and any key stops it. With more than
+3,000 changed files it starts in the file shown and reads the other
+files' diffs only when it leaves it.
+.TP
+.BR / " (Files pane), " Esc
+Filter the Files list to the files whose path matches, in every
+section. A rename matches by either path, and a pattern without capitals
+ignores case. The list changes as the pattern is typed. Untracked files
+that match are listed even when their section is folded. Enter keeps
+the filter and shows it in the pane's title, and an empty pattern clears
+it. Esc in the prompt puts back the filter before, and Esc in the Files
+pane clears it. No git runs for it.
+.TP
+.B g/
+Every hit as
+.IR path : n12: text ,
+to jump to.
+.TP
+.B e
+Edit what the cursor is on. In the Files, Unstaged and Staged panes
+that is the file, opened in the editor at the current line. On the
+lines of a commit shown from the Series pane it is those lines, as the
+commit has them. In the Series pane it is the commit's message, as
+.B r
+gives, and on the work tree row the message of the next commit, as in
+the Message pane.
+.TP
+.BR O ", " T
+Take our / their side of a conflict. The Unstaged pane of a conflicted
+file lists its conflict regions with the side labels git wrote. During
+a rebase "ours" is the rewritten history and "theirs" the commit being
+replayed. The keys resolve the region under the cursor, or in the Files
+pane the whole file after asking. The conflicts keep
+the numbers they were first shown with ("conflict 2 of 2" once the
+first is resolved). A file without conflicts left is staged.
+.TP
+.B d
+Discard the selected unstaged lines from the work tree after asking. In
+the Files pane it discards all unstaged changes of the file, and deletes
+an untracked file.
+.B u
+brings them back.
+.TP
+.B Enter
+In the Files pane, stage or unstage the whole file. The cursor stays in
+its section, on the next file. On a section's row
+.RB ( Staged ", " Unstaged )
+Enter (or
+.BR Space )
+stages or unstages all its files at once. With a filter it takes the
+ones the filter shows, and files with conflicts are left out. On the
+Untracked row Space stages all untracked files and Enter folds the row. With
+.B v
+in the Files pane, Enter takes a range of files. Above 100 files it
+asks first, and
+.B u
+takes it all back in one step.
+.B gg
+goes to the first file,
+.B k
+from there to the section's row.
+.TP
+.BR c ", " A
+Commit, amend HEAD. The editor starts with the subsystem prefix the
+history of the staged files uses most, such as
+.BR "net: phy: " .
+.B carve.suggestPrefix
+turns that off. During a split it starts from a template (see
+SPLITTING).
+.TP
+.B Ctrl-S
+Sign-off on or off. Commits and amends get the committer's
+.B Signed-off-by
+trailer unless it is already there. It starts as
+.B carve.signoff
+says, and the header shows
+.B sign-off
+while it is on.
+.TP
+.B s
+Split HEAD, or the older commit shown in the Commit section. The
+commits above it are replayed when it is finished.
+.B ZZ
+finishes the split.
+.TP
+.BR J ", " K
+The next (older, below) commit of the Series pane, and the previous
+(newer, above) one, up to the work tree. The tip is on top, and
+commits are named from it
+.RB ( HEAD
+(or
+.BR tip ),
+.BR ~1 ,
+.BR ~2 ).
+.TP
+.B t
+Fixup-to ("to"). Move the selected lines (Unstaged pane), everything
+staged (Staged pane) or the selected file into an older commit chosen
+from a list, at once. The commits above are replayed. In the list,
+.B b
+goes to the commit that last touched the lines (see
+.BR f ).
+.TP
+.B o
+Zoom the active pane (Files, Series or a diff) to the whole screen,
+and back.
+.B Tab
+goes to the next pane, still zoomed. The zoom stays on from commit to
+commit
+.RB ( J " / " K ).
+.TP
+.B Ctrl-W
+Resize the panes.
+.BR h " and " l
+(or the arrow keys) make the lists narrower or wider,
+.BR j " and " k
+move the divider of the active pane down or up. That is the one between
+Series and Files, or between the two diffs, and on a narrow terminal
+also the one between the lists and the diffs.
+.B Tab
+picks another pane.
+.B =
+puts the default layout back, and Enter or Esc ends resizing. The sizes
+last until git carve quits and stay within the screen when it is
+resized.
+.TP
+.B gS
+Hide the Series pane, or show it again
+.RB ( J " and " K
+still move through the commits).
+.TP
+.B D
+Show the commit shown in the Commit section, else HEAD, with the id,
+the subject, trailers, the stat and the diff coloured as
+.B git show
+colours them. Text windows like this one scroll with the movement keys
+and say which lines they show. The list of search hits and absorb's
+plan are coloured too.
+.B o
+puts such a window on the whole screen, and the next ones open that way
+until
+.B o
+makes them smaller again.
+.TP
+.B ZZ
+Finish what is in progress. That is a split, or a move or fixup-to
+whose conflict was resolved. A split finishes once nothing is left to
+stage and the new commits add up to the original commit exactly, less
+the lines discarded with
+.B d
+during the split. The commits above it are then replayed and must keep
+their contents.
+.TP
+.B ga
+Absorb. Show where each unstaged change block would go, the commit of
+the series that last touched its lines, or why it stays. Enter does it.
+With neither an upstream nor a remote-tracking branch the series is the
+newest 200 commits.
+.TP
+.B X
+Give up what is in progress, such as a split, a move or fixup-to.
+Everything is as it was.
+.TP
+.B u
+Undo the last change to the index or HEAD (see
+.BR UNDO ).
+It asks before forcing when things changed since.
+.TP
+.B r
+A new message in the editor for the commit shown in the Commit section,
+or for HEAD when none is shown. The commits above it are replayed.
+.TP
+.B f
+Make a
+.B fixup!
+commit for a commit chosen from a list. The list starts on the commit
+shown in the Series pane. The fixup holds what is staged. With nothing
+staged it takes the selected lines (Unstaged pane) or the selected file
+(Files pane), staged once the commit is chosen. Nothing is rewritten.
+The fixups are squashed into their commits later
+.RB ( "git rebase \-\-autosquash" ).
+In the list,
+.B b
+(blame) goes to the commit that last touched the lines of the change
+and says how many of them come from it. It runs
+.B "git blame \-M"
+of HEAD once, on the removed lines, the lines an added line replaces, or
+the lines around an insertion. It blames the selected lines of the file
+shown, else its whole change, or with something staged the file's
+staged change.
+.TP
+.B F
+Make an
+.B amend!
+commit for a commit chosen from a list. The editor starts from that
+commit's message, and the squash replaces the message with the edited
+one. It holds what is staged, if anything. Unstaged lines are not taken
+along.
+.TP
+.B S
+Squash the
+.BR fixup! ,
+.B amend!
+and
+.B squash!
+commits of the series into their commits, as
+.B git rebase \-\-autosquash
+does, after saying how many go into how many commits. Each goes right
+after the commit its subject names. A fixup keeps that commit's
+message, an amend! replaces it (on every git version) and a squash!
+adds its own to it. A fixup whose commit is not in the series stays
+where it is. The series ends with the same content as before, and your
+staged and unstaged changes stay as they are. A conflict stops as
+fixup-to's does, and
+.B u
+undoes a finished squash.
+.TP
+.BR q ", " ?
+Quit, and help. The help lists the keys in effect, grouped by kind of
+work. The actions come first (staging, selecting, committing,
+splitting, the Series pane) and moving around last.
+.TP
+.BR Ctrl-L ", " F5
+Repaint the screen and read the status, the diffs and the
+configuration again.
+.B F5
+only reads them again.
+.TP
+.B Ctrl-Z
+Suspend to the shell.
+.B fg
+returns to a redrawn screen, also after a resize in between. Below
+40x10 the TUI only shows how much room it needs.
+.PP
+New untracked files can be staged line by line. The first staged line
+marks the file intent-to-add. Binary files, pure mode changes and
+deletions allow whole-file operations only.
+.PP
+A rename is one entry,
+.BR "R old -> new" ,
+also when the file was only moved in the work tree. Such a move is
+found in a temporary copy of the index, and the real one is not
+touched. Its diff is the content change against the old file. Staging
+the entry stages only the move, with the old content at the new path,
+and the edits stay unstaged as ordinary line changes. Staging lines of
+it stages the move and the lines. Unstaging a staged rename takes both
+halves, and discarding one deletes the new file and brings the old one
+back. A new file that
+is an exact copy of a file in HEAD is noted as such.
+.PP
+These are the default keys. Every one can be changed with
+.BR carve.keys. \fIaction\fR
+(see CONFIGURATION).
+.B git carve keys
+and
+.B ?
+show the keys in effect.
+.SH BIG FILES
+The TUI never waits for a diff it cannot use. Files matching
+.B carve.skipDiff
+(tag files, unless configured otherwise) and whole-file diffs over
+.B carve.maxFileSize
+are not loaded. The pane says why, and whole-file operations work
+.RB ( Space ,
+.BR Enter ).
+.B gd
+loads the diff anyway, and
+.B gi
+hides an untracked file for good. A diff over
+.B carve.diffLimit
+lines stops git as soon as it gets there. A load that takes longer than
+a moment shows that in the status line, and any key stops it. The file
+then stays unloaded until another file is selected or
+.B gd
+is pressed. Search leaves skipped files out and stops the same way.
+.SH SPLITTING
+The commit being split is kept in
+.BR refs/worktree/carve/orig
+per worktree, and a split in one worktree is nothing to the others.
+The first commit made during the split starts with the original
+message. Later ones start empty, with the original message as a
+commented reference. If the original message has a Gerrit
+.B Change-Id:
+trailer it is kept in exactly one commit (see
+.BR carve.keepChangeId ).
+The others get new ids from your commit-msg hook.
+Every commit of the split keeps the original's
+.B Signed-off-by:
+lines. The later ones have them in their templates, and a message given
+with
+.B \-m
+gets them too.
+.BR Reviewed-by: ,
+.B Acked-by:
+and
+.B Tested-by:
+were given for the patch before the split, and no part keeps them.
+Starting the split prints a one-line note naming the ones dropped.
+.SS Changing any commit of the series
+The commit shown in the Commit section (the Series pane,
+.BR J / K )
+changes from its diff, without stopping there first.
+.B Space
+(or
+.B Enter
+on its file in the Files pane) takes the selected lines out of it into
+the work tree, unstaged.
+.B d
+drops them, from the work tree too, after asking.
+.B t
+moves them into another commit, earlier or later, chosen from the
+series, or into a new commit in one of the gaps between them. The
+editor then asks for the new commit's message. It starts from the
+subsystem prefix, and comment lines below a scissors line name the
+lines moved and the commit they came from. The commit runs with
+.BR \-\-cleanup=scissors ,
+and a line of the message that starts with the comment character stays.
+.B e
+edits the lines as the commit has them,
+.B r
+gives the commit a new message and
+.B s
+splits it. Each is one
+.B git rebase \-i
+with a break after every commit it touches, and HEAD alone needs none.
+The same checks as for fixup-to apply. The tip's tree must be what the
+change makes of it. For
+.B Space
+and
+.B d
+that is the tree without the lines. Otherwise everything is rolled
+back. Your own changes, staged and not, are saved first and put back as
+they were. A conflict, where a later commit
+touches the same lines, asks whether to resolve it now or give the
+change up. After resolving,
+.B ZZ
+goes on and
+.B X
+gives up.
+.SS In a rebase of yours
+Where a rebase you started stops cleanly
+.RB ( edit ,
+.BR break ),
+HEAD is split
+.RB ( s )
+and lines are carved out of it
+.RB ( t
+on its lines, then a gap next to it)
+as anywhere else. The TUI shows the commit in the Files pane as for a
+commit of the Series pane, with the rebase's step in the status line
+.RB ( "REBASE 3/7" ).
+The Series pane shows what the rebase replays
+.RB ( onto..HEAD ),
+and the move picker names its gaps by the commit above them
+.RB ( "a new commit before 1a2b3c4" ).
+Lines move into a commit below HEAD, or a new commit between two, at
+once. git cannot rebase inside your rebase. The move runs in a worktree
+of its own under
+.BR /carve ,
+removed afterwards, and HEAD then points at the result. The result must
+have the tree your rebase stopped at. Nothing is left to do later.
+.B git rebase \-\-abort
+drops the move with everything else the rebase did. A move that does
+not apply, because a commit between changes the lines around it, says
+why and changes nothing. Staged changes at the stop still go into the
+commit it stopped at on
+.BR "git rebase \-\-continue" .
+When git carve rewrites HEAD there with a move, a carve or lines taken
+out,
+.B rebase\-merge/amend
+follows it. That file only names the commit git amends staged changes
+into. The new HEAD is that commit with new parents, or after a carve
+after it the commit you now stand on. Pointing the file there is what
+git would do had the commit been edited by hand.
+On a big tree the worktree costs a checkout.
+The rebase is left to you. Finishing a split does not continue it, and
+.B git rebase \-\-continue
+goes on afterwards with the same tip tree. What needs a rebase of its
+own, such as splitting an older commit, fixup-to, defer or absorb, is
+refused until yours is done. In a conflict the commit is not made yet.
+Stage parts of it, commit them, and
+.B git rebase \-\-continue
+commits the rest with the original message.
+.SH UNDO
+Every action that changes the index or HEAD records an undo entry. That
+covers staging and unstaging, commit, amend, split, moving lines,
+fixups, squash, discarding lines and taking a side of a conflict.
+.B u
+reverts the newest entry, and HEAD and the index go back to what they
+were before it. Undoing a commit is
+.BR "git reset \-\-soft" ,
+and its changes are staged again. The work tree is only touched to undo
+a discard or a side taken in a conflict. The files are saved in the
+entry first, and undo asks before it overwrites a file that changed
+since.
+Undoing
+.B O
+or
+.B T
+puts the conflict back as it was, with the markers in the file and the
+path unmerged in the index. An intent-to-add mark is not restored, and
+the file is untracked again with its content.
+.PP
+The entries of stage and unstage keys typed in quick succession are
+written together when the keys pause for a second, before any other
+action is recorded, before an undo and on quitting. Each key is still
+one entry. A line staged or unstaged is kept as the patch it applied,
+and undone by applying it the other way round. That is refused if the
+lines changed since.
+.PP
+An operation that takes several steps, such as a split or a move that
+stopped on a conflict, becomes a single entry once it finishes. While
+it is in progress the steps inside it can be undone one by one, and
+.B X
+undoes the operation itself.
+.PP
+When HEAD or the index changed since the entry was recorded, for
+example by plain git commands, undo asks before it restores the
+recorded state anyway. Entries are refs under
+.B refs/worktree/carve/undo/
+(per worktree). They point at commits that keep the earlier index and
+HEAD reachable, and
+.B git gc
+leaves them alone. Only the newest
+.B carve.undoLimit
+entries are kept.
+.SH CONFIGURATION
+.TP
+.B carve.keepChangeId
+Which commit of a split keeps the original Change-Id:
+.B first
+(default),
+.B last
+or
+.BR none .
+.TP
+.B carve.tabWidth
+Tab width in the TUI diff panes (default 8).
+.TP
+.B carve.asciiLines
+Draw pane borders with ASCII characters instead of line-drawing ones.
+This is for terminals or locales that show them as garbage, often over
+ssh.
+Without it curses already falls back to ASCII where the terminal has no
+line drawing.
+.TP
+.B carve.escDelay
+How many milliseconds
+.B Esc
+waits for the rest of a key such as an arrow. An arrow arrives as Esc
+and more characters. The default is 100 and the most is 1000. Raise it
+when arrows act
+as Esc over a slow link. The
+.B ESCDELAY
+environment variable, as ncurses reads it, wins.
+.TP
+.B carve.colors
+.B 8
+(the default) uses the 8 basic colours, and your terminal's theme
+decides their shades.
+.B 256
+uses a fixed palette for dark terminal backgrounds where the
+terminal has 256 colours. That is a
+.B TERM
+such as xterm-256color, or tmux-256color in tmux. Elsewhere the basic
+colours are used.
+.B NO_COLOR
+turns colours off either way.
+.TP
+.B carve.untrackedFiles
+.B async
+(the default) shows tracked changes at once and adds untracked files
+when a background scan finishes.
+.B no
+does not list untracked files at all, the fastest choice on huge trees.
+.B core.fsmonitor
+and
+.B core.untrackedCache
+are always honoured. With either set the scan is
+.BR "git status" ,
+and git uses them. Without them it is
+.BR "git ls-files \-o" .
+That lists the same files without refreshing the index. A refresh takes
+seconds after a reset of a big tree. The Files pane's title shows the
+cursor's place among the files
+.RB ( "Files: 1203/14914" ).
+.TP
+.B carve.diffLimit
+The most diff lines a TUI pane shows. The default is 100000, and 0 means
+no limit. git is stopped as soon as a diff goes over it. The pane shows
+a note, and
+.B Space
+then stages or unstages the whole file.
+.TP
+.B carve.maxFileSize
+A diff that is a whole file, such as a new, untracked or deleted file,
+is not loaded in the TUI when it is larger than this. The default is
+5m. The suffixes k, m and g work, and 0 means no limit. Only the
+file's size is looked at, never its content.
+.TP
+.B carve.skipDiff
+A pattern of files whose diff the TUI does not load and search leaves
+out. It can be given several times. As in
+.BR .gitignore ,
+a pattern without a slash matches the file name in any directory, and
+one with a slash the path from the top. The globs are
+.BR * ,
+.B ?
+and
+.BR [...] ,
+without
+.BR ** .
+Unset, it is the tag files editors and code browsers generate,
+.BR tags ,
+.BR TAGS ,
+.BR cscope.out ,
+.BR cscope.*.out ,
+.BR GTAGS ,
+.BR GRTAGS ,
+.BR GPATH .
+An empty value clears the list so far.
+.TP
+.B carve.signoff
+Start with sign-off on, as
+.B Ctrl-S
+turns it on. The default is false.
+.TP
+.B carve.suggestPrefix
+Start commit messages with the subsystem prefix the history of the
+staged files uses most (default true).
+.TP
+.B carve.seriesStep
+How many older commits the Series pane loads each time the cursor
+passes the last one (default 5).
+.TP
+.B carve.undoLimit
+How many undo entries to keep. The default is 50, and 0 turns
+recording off.
+.TP
+.B carve.seriesPane
+Whether the TUI starts with the Series pane shown. The default is true,
+and
+.B gS
+toggles it.
+.TP
+.B carve.narrowWidth
+Below this many columns the TUI stacks its panes, with the lists
+across the whole width on top and the diffs below. The default is 100.
+.TP
+.B carve.layout
+.B one
+(the default) shows one Diff pane with the diff of the cursor's
+section.
+.B two
+shows both the Unstaged and the Staged diff.
+.TP
+.B carve.messagePane
+Whether the Message pane is shown at the start. The default is true,
+and
+.B gc
+toggles it.
+.TP
+.B carve.absorbCopies
+Whether absorb also follows lines copied or moved from other files
+.RB ( "git blame \-C" ).
+The default is false. absorb then follows only lines moved within a
+file, several times faster on a big tree.
+.TP
+.BI carve.keys. action
+Space separated keys for a TUI action, replacing its defaults. For
+example
+.B git config carve.keys.stage "y Space"
+or in a config file
+.RS
+.nf
+[carve "keys"]
+	stage = y Space
+	quit = Ctrl-Q
+	squash = none
+.fi
+.RE
+.IP
+Action names are listed by
+.BR "git carve keys" .
+Keys are single characters or
+.BR Space   Tab   Shift-Tab   Esc   Enter   Backspace ,
+.BR Up   Down   Left   Right   PgUp   PgDn   Home   End ,
+.BR Ins   Del   Ctrl-A " to " Ctrl-Z ", " F1 " to " F12 ,
+and sequences of two characters such as
+.B gg
+The first key of a sequence waits for the second, and the status line
+lists what can follow it.
+.B Esc
+cancels. A plain key bound to the first key of a sequence ends the
+default sequences that start with it, and git carve reports that.
+.B none
+leaves the action without a key. A key already taken by another
+configured action, or an unknown name, is reported when the TUI starts
+and the action keeps its defaults. The arrow keys always move.
+Every text of the TUI that names a key names the key in effect. That
+covers the status line, messages, notes in the panes and the help. An
+action without a key shows as
+.IR <action> .
+.SH ENVIRONMENT
+.TP
+.B NO_COLOR
+When set and not empty, the TUI uses no colours. As on a monochrome
+terminal, markers
+.RB ( > ,
+.BR * ,
+.BR + )
+and reverse or bold text keep every state visible.
+.TP
+.B GIT_CARVE_TRACE
+A file that gets one line for every git process git carve runs, with
+how long it took and its arguments.
+.B bg
+marks the background scan of untracked files. It shows what an
+operation costs.
+.TP
+.B GIT_CARVE_IDLE
+A file that gets
+.B idle
+whenever the TUI has nothing left to do but wait for a key, and
+.B busy
+when a key comes. The tests use it to know when the work of their keys
+is done.
+.SH FILES
+.TP
+.B $GIT_DIR/carve/
+State of the split, fixup-to or defer in progress.
+.TP
+.BR refs/worktree/carve/orig ", " refs/worktree/carve/worktree
+The commit being split, and the saved work tree during a fixup-to.
+.SH EXAMPLES
+Stage one line out of a hunk and commit it. Select the line in the
+Unstaged pane, press
+.BR Space ,
+then
+.BR c .
+.PP
+Split the third commit from the top. Press
+.B J J J
+in any pane, then
+.BR s .
+Stage and commit the pieces, then press
+.BR ZZ .
+.PP
+Fix an older commit. Select the lines and press
+.BR f ,
+then
+.B b
+to find the commit that last touched them, and Enter. Later
+.B S
+squashes all such fixups.
+.SH SEE ALSO
+.BR git-add (1),
+.BR git-rebase (1),
+.BR git-apply (1)

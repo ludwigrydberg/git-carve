@@ -1,0 +1,11 @@
+file old=del.c new=(null)
+flags deleted
+line_ops deleted file: whole-file operations only
+hdr diff --git a/del.c b/del.c
+hdr deleted file mode 100644
+hdr index b77b4eb..0000000
+hdr --- a/del.c
+hdr +++ /dev/null
+hunk -1,2 +0,0 section=''
+  -   1   0 |x|
+  -   2   0 |y|

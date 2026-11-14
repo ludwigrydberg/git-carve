@@ -1,0 +1,12 @@
+file old=(null) new=new.c
+flags new
+line_ops yes
+hdr diff --git a/new.c b/new.c
+hdr new file mode 100644
+hdr index 0000000..de98044
+hdr --- /dev/null
+hdr +++ b/new.c
+hunk -0,0 +1,3 section=''
+  +   0   1 |a|
+  +   0   2 |b|
+  +   0   3 |c|

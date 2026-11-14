@@ -1,0 +1,9 @@
+diff --git a/add.c b/add.c
+index 422c2b7..6a90d1b 100644
+--- a/add.c
++++ b/add.c
+@@ -1,2 +1,4 @@
+ a
++X
++Y
+ b

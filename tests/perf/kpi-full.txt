@@ -1,0 +1,14 @@
+startup 11 0.76
+untracked-scan 0 0.02
+rss-kb 6640 -
+hold-j-files 1 -
+hold-j-series 3 -
+search 4 0.49
+refresh 6 0.47
+stage-file 8 0.17
+commit-one 8 0.79
+stage-all 8 0.50
+unstage-all 7 0.48
+commit-all 8 0.18
+split 17 0.34
+split-abort 10 0.20

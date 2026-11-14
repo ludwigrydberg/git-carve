@@ -1,0 +1,6 @@
+file old=bin.dat new=bin.dat
+flags binary
+line_ops binary file: whole-file operations only
+hdr diff --git a/bin.dat b/bin.dat
+hdr index 20b5be9..88f3700 100644
+hdr Binary files a/bin.dat and b/bin.dat differ

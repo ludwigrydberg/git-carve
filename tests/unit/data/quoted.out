@@ -1,0 +1,10 @@
+file old=tab	here.c new=tab	here.c
+flags
+line_ops yes
+hdr diff --git "a/tab\there.c" "b/tab\there.c"
+hdr index 587be6b..975fbec 100644
+hdr --- "a/tab\there.c"
+hdr +++ "b/tab\there.c"
+hunk -1,1 +1,1 section=''
+  -   1   0 |x|
+  +   0   1 |y|
