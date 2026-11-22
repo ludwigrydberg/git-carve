@@ -62,6 +62,7 @@ static struct {
 	char *stamp;	  /* the index file both sides hold for */
 	char *run_stamp;  /* ... and the one under the run in progress */
 	time_t run_start; /* when the run in progress started */
+	time_t racy_at;	  /* when the files too new to trust no longer are */
 	bool too_big;	  /* over the cap, not again ... */
 	size_t too_big_n; /* ... until the changed files are half this */
 } dc = { .running = -1, .bg = { .fd = -1 } };
@@ -97,6 +98,7 @@ void dcache_drop(void)
 	free(dc.stamp);
 	free(dc.run_stamp);
 	dc.stamp = dc.run_stamp = NULL;
+	dc.racy_at = 0;
 	/*
 	 * over the cap once means over it again, unless the changes shrank
 	 * a lot
@@ -336,12 +338,27 @@ static bool index_is_head(const char *stamp)
 	return same;
 }
 
+/*
+ * The all files view shows the files after the current one only from the
+ * cache, so there the unstaged side runs again once the files that were
+ * too new to trust are old enough. Elsewhere such a file loads when it is
+ * shown.
+ */
+static bool racy_wait(void)
+{
+	return ui.all_files && dc.racy_at && dc.side[0].valid;
+}
+
 /* Start the git diff of a side that is not made yet. */
 static void start(void)
 {
-	int k = !dc.side[0].valid ? 0 : !dc.side[1].valid ? 1 : -1;
 	struct argv a = ARGV_INIT;
+	int k = -1;
 
+	if (dc.side[0].valid && !dc.side[1].valid)
+		k = 1;
+	else if (!dc.side[0].valid || (racy_wait() && time(NULL) >= dc.racy_at))
+		k = 0;
 	if (k < 0 || !dcache_wanted())
 		return;
 	free(dc.run_stamp);
@@ -401,6 +418,12 @@ static void run_done(int k)
 	}
 	fdiff_free_array(fds, n);
 	s->n = n;
+	if (!k) {
+		dc.racy_at = 0;
+		for (i = 0; i < n; i++)
+			if (dfile_path(&s->f[i]) && !s->f[i].st.ino)
+				dc.racy_at = dc.run_start + RACY_SECS + 1;
+	}
 	qsort(s->f, s->n, sizeof(*s->f), dfile_cmp);
 	s->valid = true;
 	if (!dc.stamp)
@@ -417,7 +440,7 @@ bool dcache_wanted(void)
 {
 	return !dc.too_big && default_view() &&
 	       ui.ntracked <= DCACHE_MAX_FILES &&
-	       (!dc.side[0].valid || !dc.side[1].valid);
+	       (!dc.side[0].valid || !dc.side[1].valid || racy_wait());
 }
 
 void dcache_idle(void)
