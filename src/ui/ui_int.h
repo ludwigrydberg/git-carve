@@ -74,6 +74,12 @@ struct dpane {
 	size_t nmarked;
 	int hscroll; /* columns of line text scrolled off with h and l */
 	/*
+	 * With all files shown, the rows above the file's own that show
+	 * the end of the file before it. The last of them is the file's
+	 * bar.
+	 */
+	int lead;
+	/*
 	 * not loaded, being too big (carve.diffLimit, carve.maxFileSize)
 	 * or skipped (carve.skipDiff), which allows only whole-file
 	 * operations
@@ -385,6 +391,7 @@ struct ui {
 	char *stopped_path;
 	bool signoff;	/* commits get Signed-off-by (Ctrl-S) */
 	bool help_quit; /* quit was chosen in the help */
+	bool all_files; /* the diffs of all files one after another (gD) */
 	struct diff_opts
 		dopts; /* how the diff panes show diffs, set with + - W w */
 	struct keymap keys; /* default + carve.keys.* */

@@ -209,6 +209,12 @@ const struct action_info actions[NACTIONS] = {
 			 "move the divider between the lists and the diffs, "
 			 "{down} / {up} the active pane's divider, = puts the "
 			 "layout back, Enter ends it" },
+	[ACT_ALL_FILES] = { "all-files", "gD",
+			    "the diffs of all files in one view, or one file",
+			    "the diff pane shows the diffs of all files of its "
+			    "section one after another. Moving past the end of "
+			    "a file goes on into the next, and the Files cursor "
+			    "follows. {all-files} again shows one file" },
 	[ACT_SERIES_PANE] = { "series-pane", "gS",
 			      "hide or show the Series pane",
 			      "hide the Series pane, or show it again "

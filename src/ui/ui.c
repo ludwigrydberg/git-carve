@@ -171,6 +171,11 @@ static void move_files(long delta)
 	}
 }
 
+static bool cross_file(int dir);
+
+/* A move this far goes to the top or the bottom (gg, G), never further. */
+#define TO_END 1000000000L
+
 static void move_cursor(long delta)
 {
 	struct dpane *dp = active_dp();
@@ -187,6 +192,9 @@ static void move_cursor(long delta)
 	if (!dp->nrows)
 		return;
 	c = (long)dp->cur + delta;
+	if (labs(delta) < TO_END && (c < 0 || c >= (long)dp->nrows) &&
+	    cross_file(c < 0 ? -1 : 1))
+		return;
 	if (c < 0)
 		c = 0;
 	if (c >= (long)dp->nrows)
@@ -487,6 +495,59 @@ static void move_file(int dir)
 }
 
 /*
+ * After crossing into the next file, its first row is drawn below the bar
+ * that follows the end of the file before, where the cursor was. Into the
+ * file before, its last row is drawn above the bar it had.
+ */
+static void place_crossed(struct dpane *dp, int dir, int row)
+{
+	if (!dp->nrows)
+		return;
+	if (dir > 0) {
+		dp->cur = dp->top = 0;
+		dp->lead = row + 2;
+		return;
+	}
+	dp->cur = dp->nrows - 1;
+	dp->lead = 0;
+	if (row < 2)
+		dp->top = dp->cur;
+	else if (dp->cur > (size_t)(row - 2))
+		dp->top = dp->cur - (size_t)(row - 2);
+	else
+		dp->top = 0;
+}
+
+/*
+ * With all files shown, moving past the end of a file goes on into the
+ * next one, and past its start into the end of the one before. Returns
+ * false when the cursor stays in the file.
+ */
+static bool cross_file(int dir)
+{
+	struct dpane *dp = active_dp();
+	char *was;
+	int row;
+
+	if (!ui.all_files || ui.path_commit || !dp ||
+	    dp->cur != (dir > 0 ? dp->nrows - 1 : 0))
+		return false;
+	if (dp->ranging) {
+		set_msg(false, "a range stays within one file");
+		return true;
+	}
+	/* the screen row of the cursor, which the view keeps */
+	row = (int)(dp->cur - dp->top) + dp->lead;
+	was = xstrdup(ui.path ? ui.path : "");
+	move_file(dir);
+	dp = active_dp();
+	if (dp && ui.path && strcmp(was, ui.path))
+		place_crossed(dp, dir, row);
+	free(was);
+	return true;
+}
+
+/*
  * h and l in the Files or Series pane move their text sideways, half the
  * pane at a time. Files show the end of a path, and h goes towards its
  * start. Series show the start of a subject, and l goes towards its end.
@@ -762,8 +823,14 @@ static int next_key(void)
 		}
 		/* nothing else to do, fill the diff cache in the background */
 		if (!ui.diff_stale && !ui.sv.stale && !undo_queued(ui.r) &&
-		    (dcache_busy() || dcache_wanted()))
+		    (dcache_busy() || dcache_wanted())) {
+			bool was_busy = dcache_busy();
+
 			dcache_idle();
+			/* the view of all files shows the diffs it now has */
+			if (ui.all_files && was_busy && !dcache_busy())
+				draw();
+		}
 	}
 	timeout(-1);
 	return c;
@@ -1033,6 +1100,15 @@ static void do_zoom(void)
 			       "{next-pane} goes to the next pane");
 }
 
+static void do_all_files(void)
+{
+	ui.all_files = !ui.all_files;
+	set_msg(false, ui.all_files ?
+			       "all files: moving past the end of a file "
+			       "goes on into the next" :
+			       "one file at a time");
+}
+
 static void do_abort(void)
 {
 	if (ui.series.op != OP_NONE)
@@ -1098,7 +1174,7 @@ static void do_top(void)
 {
 	size_t k;
 
-	move_cursor(-1000000000L);
+	move_cursor(-TO_END);
 	/* in Files, the first file, and k reaches the section's row */
 	if (ui.active == P_FILES && item_is_section(ui.fcur))
 		for (k = ui.fcur; k < ui.nitems; k++)
@@ -1110,7 +1186,7 @@ static void do_top(void)
 
 static void do_bottom(void)
 {
-	move_cursor(1000000000L);
+	move_cursor(TO_END);
 }
 
 static void do_view_option(void)
@@ -1366,6 +1442,7 @@ static void (*const action_fn[NACTIONS])(void) = {
 	[ACT_RESIZE] = do_resize,
 	[ACT_MESSAGE_PANE] = do_message_pane,
 	[ACT_ZOOM] = do_zoom,
+	[ACT_ALL_FILES] = do_all_files,
 	[ACT_NEXT_COMMIT] = act_next_commit,
 	[ACT_PREV_COMMIT] = act_prev_commit,
 	[ACT_ABORT] = do_abort,

@@ -121,6 +121,7 @@ keys beyond the quick start:
 |---|---|
 | `]` `[` | next or previous hunk |
 | `}` `{` | next or previous file |
+| `gD` | the diffs of all files in one view, scrolling from file to file |
 | `/` `n` `N` | search all diffs (in the Files pane `/` filters the list) |
 | `:N` | go to line N |
 | `a` | select the hunk |

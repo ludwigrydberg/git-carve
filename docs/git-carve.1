@@ -462,6 +462,20 @@ Hide the Series pane, or show it again
 .RB ( J " and " K
 still move through the commits).
 .TP
+.B gD
+Show the diffs of all files of a section one after another in the diff
+pane, or one file again. Each file starts with a bar with its status,
+path and how many lines it adds and removes. Moving past the end of a
+file goes on into the next one and the Files cursor follows, and the
+keys act on the file the cursor is in. The files after it come from the
+diff cache, without running git, and a file the cache does not hold
+loads when the cursor gets to it. After the last change of a file is
+staged, the next file follows. A range stays within one file, and
+.B gg
+and
+.B G
+go to the top and the bottom of the file.
+.TP
 .B D
 Show the commit shown in the Commit section, else HEAD, with the id,
 the subject, trailers, the stat and the diff coloured as

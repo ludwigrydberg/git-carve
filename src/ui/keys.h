@@ -89,6 +89,7 @@ enum action {
 	ACT_AMEND_COMMIT,
 	ACT_SQUASH,
 	ACT_RESIZE,
+	ACT_ALL_FILES,
 	/* internal, the first key of a sequence such as gg, not an action */
 	ACT_PREFIX,
 	NACTIONS

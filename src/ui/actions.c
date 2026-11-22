@@ -313,6 +313,7 @@ void act_space(void)
 {
 	struct dpane *dp = active_dp();
 	enum patch_dir dir;
+	char *was = NULL;
 	size_t a, b, n;
 	bool moved;
 
@@ -361,11 +362,20 @@ void act_space(void)
 		dir == PATCH_STAGE ? "staged" : "unstaged", n,
 		n == 1 ? "" : "s");
 	dp->ranging = false;
+	/*
+	 * With all files shown, a file with no changes left here gives way
+	 * to the next one, at its first change.
+	 */
+	if (ui.all_files) {
+		ui.stay_in_section = true;
+		was = xstrdup(ui.path);
+	}
 	if (moved)
 		reload();
 	else
 		reload_path(ui.path);
-	cursor_to_change(dp, a);
+	cursor_to_change(dp, was && ui.path && strcmp(was, ui.path) ? 0 : a);
+	free(was);
 }
 
 /*

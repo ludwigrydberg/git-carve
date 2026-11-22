@@ -559,6 +559,7 @@ static const struct {
 	    { ACT_SEARCH_LIST, H_DIFF } } },
 	{ "Panes and the view",
 	  { { ACT_SHOW_COMMIT, H_ANY },
+	    { ACT_ALL_FILES, H_FILES | H_DIFF },
 	    { ACT_NEXT_PANE, H_ANY },
 	    { ACT_PREV_PANE, H_ANY },
 	    { ACT_ZOOM, H_ANY },

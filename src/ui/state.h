@@ -7,6 +7,13 @@
 void dp_clear(struct dpane *dp);
 /* The unstaged (or cached) diff of path into the pane, up to the limit. */
 void dp_load(struct dpane *dp, const char *path, bool cached);
+/*
+ * A file's diff for the view of all files, from the diff cache only, and
+ * no git. False when the cache does not have it.
+ */
+bool dp_preview(struct dpane *dp, const char *path, bool cached);
+/* A row with a note, such as why there is no diff. */
+void dp_push_note(struct dpane *dp, const char *note);
 /* The rows of an unmerged file, each conflict with its sides. */
 size_t conflict_view(const char *path, struct crow **out);
 /*

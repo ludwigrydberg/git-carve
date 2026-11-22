@@ -1020,19 +1020,17 @@ static void draw_diff_gutter(int y, int x, bool marked, bool ranged,
 	attroff(focus);
 }
 
-static void draw_diff(struct dpane *dp, bool active)
+/*
+ * The rows of a diff pane from its first row shown, in rows screen rows
+ * from y0. Returns how many were drawn.
+ */
+static int draw_rows(struct dpane *dp, int y0, int rows, bool active)
 {
 	size_t i;
 	int y;
 
-	if (dp->h <= 0)
-		return;
-	if (dp->cur < dp->top)
-		dp->top = dp->cur;
-	if (dp->cur >= dp->top + (size_t)dp->h)
-		dp->top = dp->cur - (size_t)dp->h + 1;
-	for (y = 0, i = dp->top; y < dp->h && i < dp->nrows; y++, i++) {
-		int yy = dp->y + y, x = dp->x, w = dp->w;
+	for (y = 0, i = dp->top; y < rows && i < dp->nrows; y++, i++) {
+		int yy = y0 + y, x = dp->x, w = dp->w;
 		const struct row *rw = &dp->rows[i];
 		attr_t cattr = 0;
 		bool selected = in_range(dp, i) || rw->marked;
@@ -1142,6 +1140,160 @@ static void draw_diff(struct dpane *dp, bool active)
 		}
 		attroff(A_REVERSE | A_UNDERLINE | role_attr(C_SEL));
 	}
+	return y;
+}
+
+/* The Files entry of the file the diff panes show, in section sec, or -1. */
+static long section_entry(enum sec sec)
+{
+	size_t k;
+
+	for (k = 0; ui.path && k < ui.nitems; k++)
+		if (!ui.items[k].header && ui.items[k].sec == sec &&
+		    !strcmp(item_path(k), ui.path))
+			return (long)k;
+	return -1;
+}
+
+/*
+ * A file's bar in the view of all files, its status letter and path, and
+ * how many lines its diff adds and removes when it is loaded.
+ */
+static void draw_file_bar(int y, const struct dpane *dp, size_t k,
+			  const struct fdiff *fd)
+{
+	const struct fitem *it = &ui.items[k];
+	const struct file_status *f = &ui.fs[it->fi];
+	char letter = f->unmerged ? 'U' : it->sec == SEC_STAGED ? f->x : f->y;
+	char buf[1100], counts[48];
+	int add = 0, del = 0, cw;
+	size_t h, j;
+
+	attron(role_attr(C_STATUS) | A_BOLD);
+	fill_line(y, dp->x, dp->w);
+	snprintf(buf, sizeof(buf), " %c %s", letter, item_path(k));
+	puts_at(y, dp->x, dp->w, buf);
+	for (h = 0; fd && h < fd->nhunks; h++)
+		for (j = 0; j < fd->hunks[h].nlines; j++) {
+			add += fd->hunks[h].lines[j].op == '+';
+			del += fd->hunks[h].lines[j].op == '-';
+		}
+	cw = snprintf(counts, sizeof(counts), "+%d -%d ", add, del);
+	if (fd && (int)strlen(buf) + cw + 2 < dp->w)
+		puts_at(y, dp->x + dp->w - cw, cw, counts);
+	attroff(role_attr(C_STATUS) | A_BOLD);
+}
+
+/* A file's diff from the diff cache, for the view of all files. */
+static void preview_of(struct dpane *pv, const struct dpane *dp, size_t k)
+{
+	*pv = (struct dpane){ .x = dp->x,
+			      .w = dp->w,
+			      .hscroll = dp->hscroll,
+			      .cur = (size_t)-1 };
+	if (!dp_preview(pv, item_path(k), ui.items[k].sec == SEC_STAGED))
+		dp_push_note(pv, "(shown when the cursor gets here)");
+}
+
+static void preview_free(struct dpane *pv)
+{
+	dp_clear(pv);
+	free(pv->rows);
+}
+
+/* The entry of the file before or after entry k in its section, or -1. */
+static long next_entry(long k, int dir)
+{
+	enum sec sec = ui.items[k].sec;
+
+	for (k += dir; k >= 0 && k < (long)ui.nitems; k += dir) {
+		if (ui.items[k].sec != sec)
+			return -1;
+		if (!ui.items[k].header)
+			return k;
+	}
+	return -1;
+}
+
+/*
+ * Below the file shown, the files after it in its section, each with its
+ * bar. Their diffs come from the diff cache and run no git. A file not in
+ * it loads when the cursor gets there.
+ */
+static void draw_following(const struct dpane *dp, long k, int used)
+{
+	int y = dp->y + used, end = dp->y + dp->h;
+
+	while ((k = next_entry(k, 1)) >= 0 && y < end) {
+		struct dpane pv;
+
+		preview_of(&pv, dp, (size_t)k);
+		draw_file_bar(y++, dp, (size_t)k, pv.fd);
+		y += draw_rows(&pv, y, end - y, false);
+		preview_free(&pv);
+	}
+}
+
+/*
+ * The view of all files. The bar at the top names the file at the top of
+ * the view. After crossing into a file, the end of the file before stays
+ * above it (dp->lead rows with the file's bar) until the view scrolls.
+ */
+static void draw_all_files(struct dpane *dp, long k, bool active)
+{
+	long before = next_entry(k, -1);
+	struct dpane pv = { 0 };
+	int rows, used;
+
+	if (before < 0)
+		dp->lead = 0;
+	if (dp->lead) {
+		preview_of(&pv, dp, (size_t)before);
+		if (dp->lead - 1 > (int)pv.nrows)
+			dp->lead = (int)pv.nrows + 1;
+	}
+	/* the lead scrolls away first when the cursor goes down */
+	rows = dp->h - dp->lead;
+	if (dp->cur >= dp->top + (size_t)rows) {
+		size_t over = dp->cur - dp->top - (size_t)rows + 1;
+
+		dp->lead -= over < (size_t)dp->lead ? (int)over : dp->lead;
+		rows = dp->h - dp->lead;
+	}
+	if (dp->cur < dp->top)
+		dp->top = dp->cur;
+	if (dp->cur >= dp->top + (size_t)rows)
+		dp->top = dp->cur - (size_t)rows + 1;
+	if (dp->lead) {
+		draw_file_bar(dp->y - 1, dp, (size_t)before, pv.fd);
+		pv.top = pv.nrows - (size_t)(dp->lead - 1);
+		draw_rows(&pv, dp->y, dp->lead - 1, false);
+		draw_file_bar(dp->y + dp->lead - 1, dp, (size_t)k, dp->fd);
+	} else {
+		draw_file_bar(dp->y - 1, dp, (size_t)k, dp->fd);
+	}
+	preview_free(&pv);
+	used = draw_rows(dp, dp->y + dp->lead, rows, active);
+	draw_following(dp, k, dp->lead + used);
+}
+
+static void draw_diff(struct dpane *dp, bool active)
+{
+	enum sec sec = dp == &ui.dp[1] ? SEC_STAGED : SEC_UNSTAGED;
+	long k = ui.all_files && !ui.path_commit ? section_entry(sec) : -1;
+
+	if (dp->h <= 0)
+		return;
+	if (k >= 0) {
+		draw_all_files(dp, k, active);
+		return;
+	}
+	dp->lead = 0;
+	if (dp->cur < dp->top)
+		dp->top = dp->cur;
+	if (dp->cur >= dp->top + (size_t)dp->h)
+		dp->top = dp->cur - (size_t)dp->h + 1;
+	draw_rows(dp, dp->y, dp->h, active);
 }
 
 /* Rows the Series pane wants (title included), 0 when it is not shown. */
@@ -1381,6 +1533,11 @@ static void frame_panes(void)
 		}
 		dp->x++;
 		dp->w -= 2;
+		/* the bar of the file shown, in the view of all files */
+		if (ui.all_files && !ui.path_commit && dp->h > 1) {
+			dp->y++;
+			dp->h--;
+		}
 	}
 }
 
@@ -1513,10 +1670,14 @@ void draw(void)
 					 "  [%zu marked]", ui.dp[k].nmarked);
 			}
 		}
-		for (k = 0; ui.lay.zoom && k < 2; k++) {
+		for (k = 0; k < 2; k++) {
 			size_t l = strlen(pth[k]);
 
-			snprintf(pth[k] + l, sizeof(pth[k]) - l, "  [zoom]");
+			snprintf(pth[k] + l, sizeof(pth[k]) - l, "%s%s",
+				 ui.all_files && !ui.path_commit ?
+					 "  [all files]" :
+					 "",
+				 ui.lay.zoom ? "  [zoom]" : "");
 		}
 		if (ui.lay.msg_h)
 			draw_message();

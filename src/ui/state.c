@@ -404,6 +404,32 @@ static void dp_rows(struct dpane *dp, const char *path, bool cached,
 	}
 }
 
+void dp_push_note(struct dpane *dp, const char *note)
+{
+	dp_push(dp, R_NOTE, 0, 0, note);
+}
+
+bool dp_preview(struct dpane *dp, const char *path, bool cached)
+{
+	const char *why;
+	size_t h, j;
+
+	if (!dcache_get(path, cached, &dp->fd))
+		return false;
+	if (dp->fd->combined) {
+		dp_push(dp, R_NOTE, 0, 0, "(conflicts)");
+		return true;
+	}
+	if (!fdiff_line_ops(dp->fd, &why))
+		dp_push(dp, R_NOTE, 0, 0, why);
+	for (h = 0; h < dp->fd->nhunks; h++) {
+		dp_push(dp, R_HUNK, h, 0, NULL);
+		for (j = 0; j < dp->fd->hunks[h].nlines; j++)
+			dp_push(dp, R_LINE, h, j, NULL);
+	}
+	return true;
+}
+
 void dp_load(struct dpane *dp, const char *path, bool cached)
 {
 	bool forced = path && ui.force_path && !strcmp(ui.force_path, path);
@@ -820,6 +846,7 @@ void select_item(void)
 {
 	char *old = ui.path;
 
+	ui.dp[0].lead = ui.dp[1].lead = 0;
 	ui.path = NULL;
 	ui.path_untracked = false;
 	ui.path_commit = false;
