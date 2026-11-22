@@ -41,19 +41,20 @@ machines.
 
 ## Results
 
-Measured on November 14, 2026, on a MacBook Pro M2 with Git 2.50.1.
-Each column is one run, except the kernel search, a median of five.
+Measured on November 22, 2026, on a MacBook Pro M2 with Git 2.50.1, on
+mains power. The generated tree's column is the median of three runs,
+the kernel's one run.
 
 | KPI | generated tree (15,000 changed) | kernel v7.2 reset to v7.1 (14,900 changed, 1,535 new) |
 |---|---|---|
-| startup | 0.49 s | 1.97 s |
-| untracked-scan | 0.03 s | 0.03 s |
-| search | 0.62 s | 1.61 s (median) |
-| refresh | 0.62 s | 1.81 s |
-| stage-file | 0.25 s | 0.39 s |
-| commit-one | 0.91 s | 2.62 s |
-| stage-all | 0.47 s | 2.09 s |
-| unstage-all | 0.56 s | 1.91 s |
-| commit-all | 0.17 s | 0.28 s |
-| split | 0.33 s | 0.92 s |
-| split-abort | 0.19 s | 0.35 s |
+| startup | 0.49 s | 1.61 s |
+| untracked-scan | 0.02 s | 0.02 s |
+| search | 0.46 s | 1.45 s |
+| refresh | 0.46 s | 1.71 s |
+| stage-file | 0.17 s | 0.39 s |
+| commit-one | 0.67 s | 2.43 s |
+| stage-all | 0.46 s | 2.10 s |
+| unstage-all | 0.47 s | 1.80 s |
+| commit-all | 0.17 s | 0.29 s |
+| split | 0.32 s | 0.83 s |
+| split-abort | 0.18 s | 0.33 s |

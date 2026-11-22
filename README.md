@@ -159,8 +159,8 @@ names.
 ## Performance
 
 In a Linux v7.2 checkout with one changed file, git-carve took
-**0.34 s** to show its first screen and **0.19 s** to stage one line
-on a MacBook Pro M2 (median of five runs). See [benchmarks](docs/KPI.md)
+**0.18 s** to show its first screen and **0.21 s** to stage one line
+on a MacBook Pro M2 (median of seven runs). See [benchmarks](docs/KPI.md)
 for measurements with about 15,000 changed files, including bulk staging.
 
 ## Configuration
