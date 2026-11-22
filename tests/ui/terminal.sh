@@ -20,17 +20,16 @@ wait_screen "Staged: f.c"
 keys Tab : 2 Enter Space
 wait_index f.c 'one\ntwo\nTWO\nthree\n'
 keys '?'
-wait_screen "Keys (bind with git config"
-wait_screen "j/k: scroll"
-screen | grep -q "Ctrl-L" && fail "help fits at 80x24?"
-keys j j
-wait_screen "(3-"
+wait_screen "Keys in the diff"
+wait_screen "(1-"
 keys G
-wait_screen "gives up."
+wait_match '(\([0-9]*\)-\([0-9]*\) of \2)' || fail "G: $(screen | tail -n 3)"
 keys g g
 wait_screen "(1-"
+keys '?'
+wait_screen "All keys"
 keys q
-wait_gone "j/k: scroll"
+wait_gone "All keys"
 # a list to pick from at 80x24, f in the Staged pane
 keys Tab t
 wait_screen "Move the change into which commit?"

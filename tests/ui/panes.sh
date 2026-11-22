@@ -61,13 +61,33 @@ inner | grep -q '^> ? new.c' || inner | grep -q '^>? new.c' ||
 	fail "new.c not selected"
 wait_screen '           1 +x'
 
-# help overlay
+# the help of the Files pane, one line per key, the keys used there only
 keys '?'
-wait_screen "Keys (bind with git config"
-# grouped, a bold title per kind of work with its actions under it, the
-# actions that change something first, moving around last
+wait_screen "Keys in the Files pane"
+screen | grep -q 'Enter  *stage or unstage the whole file' ||
+	fail "no Enter in the help of Files"
+screen | grep -q 'next hunk' && fail "a key of the diff in the help of Files"
+# / searches all the keys, and Enter runs the action of the row
+keys / w h o l e ' ' c o m m i t
+wait_screen "Keys that match /whole commit"
+wait_match '>  *D  *the whole commit' || fail "D not found: $(screen)"
+keys Enter
+wait_screen "Author: T <t@t>"
+keys Escape
+wait_gone "Author: T <t@t>"
+# what it runs is undone as if its key was pressed
+keys '?' j Enter
+wait_index new.c 'x\n'
+step_keys u
+[ -z "$(git ls-files -s new.c)" ] || fail "undo after the help"
+# ? again shows all keys with their long descriptions, grouped, a bold
+# title per kind of work with its actions under it, the actions that
+# change something first, moving around last
+keys '?' '?'
+wait_screen "All keys"
+wait_screen "Bind keys with git config"
 screen | grep -q 'x Staging and editing  *x ' || fail "no Staging section"
-screen | sed -n '/Keys (bind/,/Selecting lines/p' | grep -q 'x Moving  *x ' &&
+screen | sed -n '/Bind keys/,/Selecting lines/p' | grep -q 'x Moving  *x ' &&
 	fail "Moving before the actions"
 tmux -L "$TMUX_SOCK" capture-pane -e -p -t t |
 	grep -F 'Staging and editing' |
@@ -87,5 +107,5 @@ wait_screen 'X gives up.'	# the last line
 screen | grep -q 'x Moving  *x ' || fail "Moving not at the end"
 screen | grep -q 'x Other  *x ' && fail "an action without a section"
 keys q
-wait_gone "Keys (bind with git config"
+wait_gone "All keys"
 tui_quit

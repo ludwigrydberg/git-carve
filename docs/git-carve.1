@@ -549,9 +549,15 @@ fixup-to's does, and
 undoes a finished squash.
 .TP
 .BR q ", " ?
-Quit, and help. The help lists the keys in effect, grouped by kind of
-work. The actions come first (staging, selecting, committing,
-splitting, the Series pane) and moving around last.
+Quit, and help. The help lists the keys of the active pane in effect,
+one line each, grouped by kind of work. The actions come first
+(staging, selecting, committing, splitting, the Series pane) and moving
+around last.
+.B ?
+again lists all keys with their long descriptions, and
+.B /
+searches all keys by name, key and description. Enter runs the action
+of the row with the cursor, as its key would.
 .TP
 .BR Ctrl-L ", " F5
 Repaint the screen and read the status, the diffs and the

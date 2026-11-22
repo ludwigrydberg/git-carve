@@ -10,205 +10,245 @@
 #include <strings.h>
 
 const struct action_info actions[NACTIONS] = {
-	[ACT_NONE] = { "", "", "" },
-	[ACT_QUIT] = { "quit", "q", "quit" },
-	[ACT_HELP] = { "help", "?", "this help" },
-	[ACT_NEXT_PANE] = { "next-pane", "Tab",
+	[ACT_NONE] = { "", "", "", "" },
+	[ACT_QUIT] = { "quit", "q", "quit", "quit" },
+	[ACT_HELP] = { "help", "?", "the keys of this pane, again for all keys",
+		       "this help" },
+	[ACT_NEXT_PANE] = { "next-pane", "Tab", "next pane",
 			    "next pane: Files, Unstaged, Staged" },
-	[ACT_PREV_PANE] = { "prev-pane", "Shift-Tab", "previous pane" },
-	[ACT_DOWN] = { "down", "j Down", "move down" },
-	[ACT_UP] = { "up", "k Up", "move up" },
-	[ACT_PAGE_DOWN] = { "page-down", "PgDn Ctrl-F", "page down" },
-	[ACT_PAGE_UP] = { "page-up", "PgUp Ctrl-B", "page up" },
-	[ACT_TOP] = { "top", "gg Home",
+	[ACT_PREV_PANE] = { "prev-pane", "Shift-Tab", "previous pane",
+			    "previous pane" },
+	[ACT_DOWN] = { "down", "j Down", "down", "move down" },
+	[ACT_UP] = { "up", "k Up", "up", "move up" },
+	[ACT_PAGE_DOWN] = { "page-down", "PgDn Ctrl-F", "page down",
+			    "page down" },
+	[ACT_PAGE_UP] = { "page-up", "PgUp Ctrl-B", "page up", "page up" },
+	[ACT_TOP] = { "top", "gg Home", "to the top",
 		      "go to the top (in Files: the first file)" },
-	[ACT_BOTTOM] = { "bottom", "G End", "go to the bottom" },
+	[ACT_BOTTOM] = { "bottom", "G End", "to the bottom",
+			 "go to the bottom" },
 	[ACT_SCROLL_LEFT] = { "scroll-left", "h Left",
+			      "scroll left, back to the start of long lines",
 			      "show more of the left: the start of long "
 			      "lines, paths, subjects (a mark at a row's "
 			      "edge: more there)" },
 	[ACT_SCROLL_RIGHT] = { "scroll-right", "l Right",
+			       "scroll right, to the end of long lines",
 			       "show more of the right: the end of long "
 			       "lines, paths, subjects" },
-	[ACT_HALF_DOWN] = { "half-page-down", "Ctrl-D", "half a page down" },
-	[ACT_HALF_UP] = { "half-page-up", "Ctrl-U", "half a page up" },
-	[ACT_LINE_DOWN] = { "scroll-down", "Ctrl-E",
+	[ACT_HALF_DOWN] = { "half-page-down", "Ctrl-D", "half a page down",
+			    "half a page down" },
+	[ACT_HALF_UP] = { "half-page-up", "Ctrl-U", "half a page up",
+			  "half a page up" },
+	[ACT_LINE_DOWN] = { "scroll-down", "Ctrl-E", "scroll down a line",
 			    "scroll the view down a line (the cursor stays "
 			    "if it can)" },
-	[ACT_LINE_UP] = { "scroll-up", "Ctrl-Y", "scroll the view up a line" },
+	[ACT_LINE_UP] = { "scroll-up", "Ctrl-Y", "scroll up a line",
+			  "scroll the view up a line" },
 	[ACT_SCROLL_CENTER] = { "scroll-center", "zz",
+				"the cursor line to the middle",
 				"scroll the cursor line to the middle" },
 	[ACT_SCROLL_TOP] = { "scroll-cursor-top", "zt",
+			     "the cursor line to the top",
 			     "scroll the cursor line to the top" },
 	[ACT_SCROLL_BOTTOM] = { "scroll-cursor-bottom", "zb",
+				"the cursor line to the bottom",
 				"scroll the cursor line to the bottom" },
 	[ACT_SCREEN_TOP] = { "screen-top", "H",
+			     "the cursor to the top of the view",
 			     "cursor to the top line of the view" },
 	[ACT_SCREEN_MIDDLE] = { "screen-middle", "M",
+				"the cursor to the middle of the view",
 				"cursor to the middle of the view" },
 	[ACT_SCREEN_BOTTOM] = { "screen-bottom", "L",
+				"the cursor to the bottom of the view",
 				"cursor to the bottom line of the view" },
 	[ACT_LINE_START] = { "line-start", "0",
+			     "back to the start of the lines",
 			     "scroll the diff text back to the start of the "
 			     "lines" },
-	[ACT_LINE_END] = { "line-end", "$",
+	[ACT_LINE_END] = { "line-end", "$", "to the end of the cursor line",
 			   "scroll the diff text to the end of the cursor "
 			   "line" },
-	[ACT_NEXT_HUNK] = { "next-hunk", "]", "next hunk (or conflict)" },
-	[ACT_PREV_HUNK] = { "prev-hunk", "[", "previous hunk (or conflict)" },
-	[ACT_NEXT_CHANGE] = { "next-change", ")",
+	[ACT_NEXT_HUNK] = { "next-hunk", "]", "next hunk",
+			    "next hunk (or conflict)" },
+	[ACT_PREV_HUNK] = { "prev-hunk", "[", "previous hunk",
+			    "previous hunk (or conflict)" },
+	[ACT_NEXT_CHANGE] = { "next-change", ")", "next change",
 			      "next block of changed lines" },
-	[ACT_PREV_CHANGE] = { "prev-change", "(",
+	[ACT_PREV_CHANGE] = { "prev-change", "(", "previous change",
 			      "previous block of changed lines" },
-	[ACT_NEXT_FILE] = { "next-file", "}",
+	[ACT_NEXT_FILE] = { "next-file", "}", "next file",
 			    "next file with changes in this pane" },
-	[ACT_PREV_FILE] = { "prev-file", "{",
+	[ACT_PREV_FILE] = { "prev-file", "{", "previous file",
 			    "previous file with changes in this pane" },
-	[ACT_MORE_CONTEXT] = { "more-context",
-			       "+ =", "more context lines in the diffs" },
-	[ACT_LESS_CONTEXT] = { "less-context", "-",
+	[ACT_MORE_CONTEXT] = { "more-context", "+ =", "more context lines",
+			       "more context lines in the diffs" },
+	[ACT_LESS_CONTEXT] = { "less-context", "-", "fewer context lines",
 			       "fewer context lines (down to 0)" },
 	[ACT_FUNC_CONTEXT] = { "function-context", "W",
+			       "whole functions on or off",
 			       "show whole functions around changes (git diff "
 			       "-W) on/off" },
 	[ACT_IGNORE_WS] = { "ignore-whitespace", "w",
+			    "ignore whitespace on or off, a view only",
 			    "ignore whitespace changes on/off; a view only: "
 			    "line operations are off meanwhile" },
 	[ACT_GOTO] = { "goto-line", ":",
+		       "go to a line, or replace with :s/old/new/",
 		       "go to line: {goto-line}N or {goto-line}nN new side, "
 		       "{goto-line}oN old side; replace: "
 		       "{goto-line}s/pattern/replacement/[gi] on the selected "
 		       "lines, {goto-line}%s/.../ on the whole file (the work "
 		       "tree)" },
 	[ACT_SEARCH] = { "search", "/",
+			 "search the diffs, in Files filter the list",
 			 "search the diffs of all files (smart case); in the "
 			 "Files pane: filter the list by path as you type" },
-	[ACT_SEARCH_NEXT] = { "search-next", "n",
+	[ACT_SEARCH_NEXT] = { "search-next", "n", "next search hit",
 			      "next search hit, on into the next files" },
-	[ACT_SEARCH_PREV] = { "search-prev", "N", "previous search hit" },
-	[ACT_SEARCH_LIST] = { "search-list", "g/",
+	[ACT_SEARCH_PREV] = { "search-prev", "N", "previous search hit",
+			      "previous search hit" },
+	[ACT_SEARCH_LIST] = { "search-list", "g/", "list every search hit",
 			      "list every search hit in all files, to jump to" },
 	[ACT_STAGE] = { "stage", "Space",
+			"stage or unstage the line, range or hunk",
 			"stage (Unstaged) / unstage (Staged) the line, range, "
 			"marked lines, or on a hunk header the hunk" },
 	[ACT_STAGE_FILE] = { "stage-file", "Enter",
+			     "stage or unstage the whole file",
 			     "Files pane: stage/unstage the whole file; on a "
 			     "section's row (Staged, Unstaged) all its files, "
 			     "those the filter shows" },
-	[ACT_RANGE] = { "range", "v",
+	[ACT_RANGE] = { "range", "v", "start or end a range",
 			"start/stop a range selection (in Files: of files, "
 			"for {stage-file})" },
-	[ACT_MARK] = { "mark", "m",
+	[ACT_MARK] = { "mark", "m", "mark or unmark a line",
 		       "mark/unmark a line. Stage, fixup and edit on a "
 		       "commit's lines then act on the marked lines" },
-	[ACT_SELECT_HUNK] = { "select-hunk", "a", "select the whole hunk" },
+	[ACT_SELECT_HUNK] = { "select-hunk", "a", "select the whole hunk",
+			      "select the whole hunk" },
 	[ACT_CLEAR] = { "clear", "Esc",
+			"clear the range, the marks or the filter",
 			"clear the range and the marks (Files pane: the "
 			"filter)" },
-	[ACT_EDIT] = { "edit", "e",
+	[ACT_EDIT] = { "edit", "e", "edit the file at the line, or the message",
 		       "edit what the cursor is on: the file at the line, a "
 		       "commit's lines as the commit has them, a commit's "
 		       "message in the Series pane" },
-	[ACT_DISCARD] = { "discard", "d",
+	[ACT_DISCARD] = { "discard", "d", "throw the unstaged lines away",
 			  "throw the selected unstaged lines (Files pane: the "
 			  "file's unstaged changes) away, after asking; "
 			  "{undo} undoes it" },
-	[ACT_OURS] = { "take-ours", "O",
+	[ACT_OURS] = { "take-ours", "O", "take our side of the conflict",
 		       "conflicts: take our side of the one under the cursor "
 		       "(Files pane: of the whole file)" },
-	[ACT_THEIRS] = { "take-theirs", "T",
+	[ACT_THEIRS] = { "take-theirs", "T", "take their side of the conflict",
 			 "conflicts: take their side, likewise" },
-	[ACT_COMMIT] = { "commit", "c", "commit what is staged" },
-	[ACT_AMEND] = { "amend", "A", "amend HEAD" },
-	[ACT_SIGNOFF] = { "signoff", "Ctrl-S",
+	[ACT_COMMIT] = { "commit", "c", "commit what is staged",
+			 "commit what is staged" },
+	[ACT_AMEND] = { "amend", "A", "amend HEAD with what is staged",
+			"amend HEAD" },
+	[ACT_SIGNOFF] = { "signoff", "Ctrl-S", "sign off commits on or off",
 			  "sign off commits on/off (Signed-off-by, no "
 			  "duplicates)" },
-	[ACT_SPLIT] = { "split", "s",
+	[ACT_SPLIT] = { "split", "s", "split HEAD, or the commit shown",
 			"split HEAD, or the older commit shown (the commits "
 			"above are replayed when it is finished); "
 			"{finish} finishes it" },
 	[ACT_FIXUP] = { "fixup-to", "t",
+			"move the lines into an older commit now",
 			"move the selection, the staged changes or the file "
 			"into an older commit (b in the list: the commit that "
 			"last touched the lines); on a commit's lines: into "
 			"another commit, or a new one in a gap" },
 	[ACT_ABSORB] = { "absorb", "ga",
+			 "move every change into the commit it belongs to",
 			 "move every unstaged change block into the commit of "
 			 "the series that last touched its lines (a plan "
 			 "first)" },
-	[ACT_NEXT_COMMIT] = { "next-commit", "J",
+	[ACT_NEXT_COMMIT] = { "next-commit", "J", "show the next older commit",
 			      "the next (older) commit of the Series pane, "
 			      "below" },
-	[ACT_PREV_COMMIT] = { "prev-commit", "K",
+	[ACT_PREV_COMMIT] = { "prev-commit", "K", "show the next newer commit",
 			      "the previous (newer) commit of the Series pane, "
 			      "above, up to the work tree" },
 	[ACT_SHOW_COMMIT] = { "show-commit", "D",
+			      "the whole commit: message, stat and full diff",
 			      "show the commit shown in the Commit section, "
 			      "else HEAD (message, stat and diff)" },
-	[ACT_FINISH] = { "finish", "ZZ",
+	[ACT_FINISH] = { "finish", "ZZ", "finish the split or move in progress",
 			 "finish what is in progress: a split, a move or "
 			 "fixup-to after its conflict was resolved" },
-	[ACT_REMOVE] = { "remove", "R",
+	[ACT_REMOVE] = { "remove", "R", "delete the file and stage it (git rm)",
 			 "Files pane: delete the file and stage its deletion "
 			 "(git rm), after asking; {undo} undoes it" },
 	[ACT_MARK_PAIR] = { "mark-pair", "gm",
+			    "mark a changed line and its pair",
 			    "mark a changed line and its pair on the other "
 			    "side (-a +A), or unmark both" },
-	[ACT_ABORT] = { "abort", "X",
+	[ACT_ABORT] = { "abort", "X", "give up the operation in progress",
 			"give up what is in progress: a split, a move, "
 			"fixup-to; everything as it was" },
-	[ACT_UNDO] = { "undo", "u",
+	[ACT_UNDO] = { "undo", "u", "undo the last change to the index or HEAD",
 		       "undo the last change to the index or HEAD (the work "
 		       "tree is not touched)" },
 	[ACT_REFRESH] = { "refresh", "F5",
+			  "read the status and the diffs again",
 			  "read the status, the diffs and the configuration "
 			  "again ({repaint} does too)" },
-	[ACT_REWORD] = { "reword", "r",
+	[ACT_REWORD] = { "reword", "r", "a new message for the commit shown",
 			 "a new message for the commit shown (none shown: "
 			 "HEAD's), in the editor; the commits above it are "
 			 "replayed" },
-	[ACT_ZOOM] = { "zoom", "o",
+	[ACT_ZOOM] = { "zoom", "o", "this pane on the whole screen, or back",
 		       "the active pane on the whole screen (Files, Series "
 		       "or a diff), or back; {next-pane} goes on zoomed" },
-	[ACT_RESIZE] = { "resize", "Ctrl-W",
+	[ACT_RESIZE] = { "resize", "Ctrl-W", "resize the panes",
 			 "resize the panes: {scroll-left} / {scroll-right} "
 			 "move the divider between the lists and the diffs, "
 			 "{down} / {up} the active pane's divider, = puts the "
 			 "layout back, Enter ends it" },
 	[ACT_SERIES_PANE] = { "series-pane", "gS",
+			      "hide or show the Series pane",
 			      "hide the Series pane, or show it again "
 			      "(carve.seriesPane = false: hidden from the "
 			      "start; J / K still move through the commits)" },
 	[ACT_MESSAGE_PANE] = { "message-pane", "gc",
+			       "hide or show the message pane",
 			       "hide the message pane, or show it again "
 			       "(carve.messagePane = false: hidden from the "
 			       "start); in it {edit} writes the "
 			       "message, or renames the commit shown, and "
 			       "{commit} commits with it" },
-	[ACT_REPAINT] = { "repaint", "Ctrl-L",
+	[ACT_REPAINT] = { "repaint", "Ctrl-L", "repaint the screen",
 			  "repaint the screen and read the status and the diffs "
 			  "again" },
 	[ACT_LOAD_DIFF] = { "load-diff", "gd",
+			    "load a diff that is big or skipped",
 			    "load the diff of the file although it is big or "
 			    "carve.skipDiff names it (a key stops the loading)" },
-	[ACT_IGNORE] = { "ignore", "gi",
+	[ACT_IGNORE] = { "ignore", "gi", "never list this untracked file again",
 			 "an untracked file: add it to .git/info/exclude, so "
 			 "it is never listed again" },
 	[ACT_FIXUP_COMMIT] = { "fixup", "f",
+			       "a fixup! commit for an older commit",
 			       "a fixup! commit of the selected lines (or what "
 			       "is staged) for a commit chosen from a list (b: "
 			       "the commit that last touched the lines), to be "
 			       "squashed later ({squash}); nothing is "
 			       "rewritten" },
 	[ACT_AMEND_COMMIT] = { "amend-fixup", "F",
+			       "an amend! commit, a new message for a commit",
 			       "an amend! commit: a new message for a commit "
 			       "chosen from a list (in the editor), with what "
 			       "is staged; squashed later ({squash})" },
 	[ACT_SQUASH] = { "squash", "S",
+			 "squash the fixup! commits into their commits",
 			 "squash the fixup!, amend! and squash! commits of the "
 			 "series into their commits, after asking (the "
 			 "commits above them are replayed; {undo} undoes it)" },
-	[ACT_PREFIX] = { "", "", "" },
+	[ACT_PREFIX] = { "", "", "", "" },
 };
 
 static const struct {

@@ -487,60 +487,202 @@ char *pick_commit_sel(const char *title, const char *rev, const char *sel,
 	return res;
 }
 
+/* Where the help of a pane lists an action. */
+enum {
+	H_FILES = 1 << 0,
+	H_DIFF = 1 << 1,
+	H_SERIES = 1 << 2,
+	H_MSG = 1 << 3,
+	H_ANY = H_FILES | H_DIFF | H_SERIES | H_MSG,
+	H_OP = 1 << 4,	     /* only while a split or a move is in progress */
+	H_CONFLICT = 1 << 5, /* only while a file has conflicts */
+};
+
+struct help_item {
+	enum action a;
+	unsigned where; /* 0 for the list of all keys only */
+};
+
 /*
  * The sections of the help, each action once, and the rest goes to Other.
  * The actions that change something come first, moving around last.
  */
 static const struct {
 	const char *title;
-	enum action acts[24];
+	struct help_item items[24];
 } help_sections[] = {
 	{ "Staging and editing",
-	  { ACT_STAGE, ACT_STAGE_FILE, ACT_EDIT, ACT_DISCARD, ACT_REMOVE,
-	    ACT_IGNORE, ACT_OURS, ACT_THEIRS, ACT_UNDO } },
+	  { { ACT_STAGE, H_FILES | H_DIFF },
+	    { ACT_STAGE_FILE, H_FILES },
+	    { ACT_EDIT, H_ANY },
+	    { ACT_DISCARD, H_FILES | H_DIFF },
+	    { ACT_REMOVE, H_FILES },
+	    { ACT_IGNORE, H_FILES },
+	    { ACT_OURS, H_FILES | H_DIFF | H_CONFLICT },
+	    { ACT_THEIRS, H_FILES | H_DIFF | H_CONFLICT },
+	    { ACT_UNDO, H_ANY } } },
 	{ "Selecting lines",
-	  { ACT_RANGE, ACT_MARK, ACT_MARK_PAIR, ACT_SELECT_HUNK, ACT_CLEAR } },
+	  { { ACT_RANGE, H_FILES | H_DIFF },
+	    { ACT_MARK, H_DIFF },
+	    { ACT_MARK_PAIR, H_DIFF },
+	    { ACT_SELECT_HUNK, H_DIFF },
+	    { ACT_CLEAR, H_FILES | H_DIFF } } },
 	{ "Committing",
-	  { ACT_COMMIT, ACT_AMEND, ACT_FIXUP_COMMIT, ACT_AMEND_COMMIT,
-	    ACT_SQUASH, ACT_REWORD, ACT_SIGNOFF, ACT_MESSAGE_PANE } },
+	  { { ACT_COMMIT, H_FILES | H_DIFF | H_MSG },
+	    { ACT_AMEND, H_FILES | H_DIFF | H_MSG },
+	    { ACT_FIXUP_COMMIT, H_FILES | H_DIFF | H_SERIES },
+	    { ACT_AMEND_COMMIT, H_FILES | H_DIFF | H_SERIES },
+	    { ACT_SQUASH, H_FILES | H_SERIES },
+	    { ACT_REWORD, H_SERIES | H_MSG },
+	    { ACT_SIGNOFF, 0 },
+	    { ACT_MESSAGE_PANE, H_MSG } } },
 	{ "Splitting and moving changes",
-	  { ACT_SPLIT, ACT_FIXUP, ACT_ABSORB, ACT_FINISH, ACT_ABORT } },
+	  { { ACT_SPLIT, H_FILES | H_SERIES },
+	    { ACT_FIXUP, H_FILES | H_DIFF },
+	    { ACT_ABSORB, H_FILES | H_DIFF },
+	    { ACT_FINISH, H_ANY | H_OP },
+	    { ACT_ABORT, H_ANY | H_OP } } },
 	{ "The Series pane",
-	  { ACT_NEXT_COMMIT, ACT_PREV_COMMIT, ACT_SERIES_PANE } },
+	  { { ACT_NEXT_COMMIT, H_ANY },
+	    { ACT_PREV_COMMIT, H_ANY },
+	    { ACT_SERIES_PANE, H_SERIES } } },
 	{ "Going through the changes",
-	  { ACT_NEXT_HUNK, ACT_PREV_HUNK, ACT_NEXT_CHANGE, ACT_PREV_CHANGE,
-	    ACT_NEXT_FILE, ACT_PREV_FILE, ACT_SEARCH, ACT_SEARCH_NEXT,
-	    ACT_SEARCH_PREV, ACT_SEARCH_LIST } },
+	  { { ACT_NEXT_HUNK, H_DIFF },
+	    { ACT_PREV_HUNK, H_DIFF },
+	    { ACT_NEXT_CHANGE, H_DIFF },
+	    { ACT_PREV_CHANGE, H_DIFF },
+	    { ACT_NEXT_FILE, H_DIFF },
+	    { ACT_PREV_FILE, H_DIFF },
+	    { ACT_SEARCH, H_FILES | H_DIFF },
+	    { ACT_SEARCH_NEXT, H_DIFF },
+	    { ACT_SEARCH_PREV, H_DIFF },
+	    { ACT_SEARCH_LIST, H_DIFF } } },
 	{ "Panes and the view",
-	  { ACT_NEXT_PANE, ACT_PREV_PANE, ACT_ZOOM, ACT_RESIZE,
-	    ACT_MORE_CONTEXT, ACT_LESS_CONTEXT, ACT_FUNC_CONTEXT, ACT_IGNORE_WS,
-	    ACT_SHOW_COMMIT, ACT_LOAD_DIFF, ACT_REFRESH, ACT_REPAINT } },
-	{ "Moving", { ACT_DOWN,		 ACT_UP,
-		      ACT_PAGE_DOWN,	 ACT_PAGE_UP,
-		      ACT_HALF_DOWN,	 ACT_HALF_UP,
-		      ACT_TOP,		 ACT_BOTTOM,
-		      ACT_SCREEN_TOP,	 ACT_SCREEN_MIDDLE,
-		      ACT_SCREEN_BOTTOM, ACT_LINE_DOWN,
-		      ACT_LINE_UP,	 ACT_SCROLL_CENTER,
-		      ACT_SCROLL_TOP,	 ACT_SCROLL_BOTTOM,
-		      ACT_SCROLL_LEFT,	 ACT_SCROLL_RIGHT,
-		      ACT_LINE_START,	 ACT_LINE_END,
-		      ACT_GOTO } },
-	{ "General", { ACT_HELP, ACT_QUIT } },
+	  { { ACT_SHOW_COMMIT, H_ANY },
+	    { ACT_NEXT_PANE, H_ANY },
+	    { ACT_PREV_PANE, H_ANY },
+	    { ACT_ZOOM, H_ANY },
+	    { ACT_RESIZE, 0 },
+	    { ACT_MORE_CONTEXT, H_DIFF },
+	    { ACT_LESS_CONTEXT, H_DIFF },
+	    { ACT_FUNC_CONTEXT, H_DIFF },
+	    { ACT_IGNORE_WS, H_DIFF },
+	    { ACT_LOAD_DIFF, H_DIFF },
+	    { ACT_REFRESH, H_ANY },
+	    { ACT_REPAINT, 0 } } },
+	{ "Moving",
+	  { { ACT_DOWN, H_ANY },
+	    { ACT_UP, H_ANY },
+	    { ACT_PAGE_DOWN, H_ANY },
+	    { ACT_PAGE_UP, H_ANY },
+	    { ACT_HALF_DOWN, 0 },
+	    { ACT_HALF_UP, 0 },
+	    { ACT_TOP, H_ANY },
+	    { ACT_BOTTOM, H_ANY },
+	    { ACT_SCREEN_TOP, 0 },
+	    { ACT_SCREEN_MIDDLE, 0 },
+	    { ACT_SCREEN_BOTTOM, 0 },
+	    { ACT_LINE_DOWN, 0 },
+	    { ACT_LINE_UP, 0 },
+	    { ACT_SCROLL_CENTER, 0 },
+	    { ACT_SCROLL_TOP, 0 },
+	    { ACT_SCROLL_BOTTOM, 0 },
+	    { ACT_SCROLL_LEFT, H_FILES | H_DIFF | H_SERIES },
+	    { ACT_SCROLL_RIGHT, H_FILES | H_DIFF | H_SERIES },
+	    { ACT_LINE_START, 0 },
+	    { ACT_LINE_END, 0 },
+	    { ACT_GOTO, H_DIFF } } },
+	{ "General", { { ACT_HELP, H_ANY }, { ACT_QUIT, H_ANY } } },
 };
 
-/* One action, its keys, then its description wrapped at 52 columns. */
-static void help_action(char ***v, size_t *n, size_t *alloc, enum action a)
+/* A row of the help, with the action Enter runs on it (or ACT_NONE). */
+struct help_row {
+	char *text;
+	enum action act;
+	bool title;
+};
+
+struct help_list {
+	struct help_row *v;
+	size_t n, alloc;
+};
+
+static void help_add(struct help_list *l, char *text, enum action act,
+		     bool title)
+{
+	ALLOC_GROW(l->v, l->n + 1, l->alloc);
+	l->v[l->n++] = (struct help_row){ text, act, title };
+}
+
+static void help_free(struct help_list *l)
+{
+	size_t i;
+
+	for (i = 0; i < l->n; i++)
+		free(l->v[i].text);
+	free(l->v);
+	memset(l, 0, sizeof(*l));
+}
+
+static bool any_conflict(void)
+{
+	size_t i;
+
+	for (i = 0; i < ui.nfs; i++)
+		if (ui.fs[i].unmerged)
+			return true;
+	return false;
+}
+
+/* Whether the help of the active pane lists an action used there. */
+static bool help_here(unsigned where)
+{
+	unsigned pane = ui.active == P_FILES   ? H_FILES :
+			ui.active == P_SERIES  ? H_SERIES :
+			ui.active == P_MESSAGE ? H_MSG :
+						 H_DIFF;
+
+	if ((where & H_OP) && !ui.split.active && ui.series.op == OP_NONE)
+		return false;
+	if ((where & H_CONFLICT) && !any_conflict())
+		return false;
+	return where & pane;
+}
+
+/* Whether an action's keys, name or short description have the filter. */
+static bool help_matches(enum action a, const char *filter)
+{
+	struct strbuf t = STRBUF_INIT;
+	bool yes;
+
+	keymap_describe(&ui.keys, a, &t);
+	sb_addf(&t, " %s %s", actions[a].name, actions[a].brief);
+	yes = smart_match(t.buf, t.len, filter);
+	sb_release(&t);
+	return yes;
+}
+
+/*
+ * One action, its keys, then its description. The short one takes one
+ * line, and the long one is wrapped at 52 columns.
+ */
+static void help_action(struct help_list *l, enum action a, bool details)
 {
 	struct strbuf keys = STRBUF_INIT, line = STRBUF_INIT,
 		      help = STRBUF_INIT;
 	bool first = true;
 	const char *d;
 
+	keymap_describe(&ui.keys, a, &keys);
+	if (!details) {
+		sb_addf(&line, "  %-14s %s", keys.buf, actions[a].brief);
+		help_add(l, sb_detach(&line), a, false);
+		sb_release(&keys);
+		return;
+	}
 	/* other keys a description names, as bound */
 	keys_subst(&ui.keys, actions[a].help, &help, false);
 	d = sb_str(&help);
-	keymap_describe(&ui.keys, a, &keys);
 	while (*d || first) {
 		size_t take = strlen(d);
 
@@ -554,8 +696,7 @@ static void help_action(char ***v, size_t *n, size_t *alloc, enum action a)
 		sb_reset(&line);
 		sb_addf(&line, "  %-18s %.*s", first ? keys.buf : "", (int)take,
 			d);
-		ALLOC_GROW(*v, *n + 1, *alloc);
-		(*v)[(*n)++] = sb_detach(&line);
+		help_add(l, sb_detach(&line), first ? a : ACT_NONE, false);
 		d += take;
 		while (*d == ' ')
 			d++;
@@ -567,153 +708,295 @@ static void help_action(char ***v, size_t *n, size_t *alloc, enum action a)
 }
 
 /*
- * The help text, built from the key map to show the keys in effect. A
- * section per kind of work has its title at the left, drawn bold, and its
- * actions indented. Returns the number of lines. Free them with
- * help_free().
+ * The rows of the help, built from the key map to show the keys in
+ * effect. With a filter they are the actions that match it, with all the
+ * actions with their long descriptions, and else the actions of the
+ * active pane. A section's title is a row of its own.
  */
-static size_t help_build(char ***out)
+static void help_build(struct help_list *l, bool all, const char *filter)
 {
 	bool listed[NACTIONS] = { false };
-	size_t n = 0, alloc = 0, s, i;
-	bool other = false;
-	char **v = NULL;
+	size_t s, i;
 	int a;
 
-#define HELP_ADD(s)                          \
-	do {                                 \
-		ALLOC_GROW(v, n + 1, alloc); \
-		v[n++] = (s);                \
-	} while (0)
-
-	HELP_ADD(xstrdup("Keys (bind with git config carve.keys.<action>; "
-			 "git carve keys lists them)"));
+	if (all)
+		help_add(
+			l,
+			xstrdup("Bind keys with git config carve.keys.<action>; "
+				"git carve keys lists them."),
+			ACT_NONE, false);
 	for (s = 0; s < ARRAY_SIZE(help_sections); s++) {
-		HELP_ADD(xstrdup(""));
-		HELP_ADD(xstrdup(help_sections[s].title));
-		for (i = 0; i < ARRAY_SIZE(help_sections[s].acts) &&
-			    help_sections[s].acts[i];
-		     i++) {
-			help_action(&v, &n, &alloc, help_sections[s].acts[i]);
-			listed[help_sections[s].acts[i]] = true;
+		bool first = true;
+
+		for (i = 0; i < ARRAY_SIZE(help_sections[s].items); i++) {
+			const struct help_item *it = &help_sections[s].items[i];
+
+			if (!it->a)
+				break;
+			listed[it->a] = true;
+			if (*filter ? !help_matches(it->a, filter) :
+			    !all    ? !help_here(it->where) :
+				      false)
+				continue;
+			if (first) {
+				if (l->n)
+					help_add(l, xstrdup(""), ACT_NONE,
+						 false);
+				help_add(l, xstrdup(help_sections[s].title),
+					 ACT_NONE, true);
+				first = false;
+			}
+			help_action(l, it->a, all);
 		}
 	}
 	for (a = 1; a < NACTIONS; a++) {
-		if (listed[a] || !*actions[a].name)
-			continue; /* shown, or ACT_PREFIX */
-		if (!other) {
-			HELP_ADD(xstrdup(""));
-			HELP_ADD(xstrdup("Other"));
-			other = true;
-		}
-		help_action(&v, &n, &alloc, (enum action)a);
+		if (listed[a] || !*actions[a].name || !(all || *filter))
+			continue; /* shown, ACT_PREFIX, or not in a pane's help */
+		if (*filter && !help_matches((enum action)a, filter))
+			continue;
+		help_add(l, xstrdup(""), ACT_NONE, false);
+		help_add(l, xstrdup("Other"), ACT_NONE, true);
+		help_action(l, (enum action)a, all);
 	}
-	HELP_ADD(xstrdup(""));
-	HELP_ADD(xstrdup("After a conflict in fixup-to"));
-	{
+	if (all && !*filter) {
 		struct strbuf t = STRBUF_INIT;
 
+		help_add(l, xstrdup(""), ACT_NONE, false);
+		help_add(l, xstrdup("After a conflict in fixup-to"), ACT_NONE,
+			 true);
 		keys_subst(&ui.keys,
 			   "  resolve ({edit}), stage the file, "
 			   "then {finish} continues and",
 			   &t, false);
-		HELP_ADD(sb_detach(&t));
+		help_add(l, sb_detach(&t), ACT_NONE, false);
 		keys_subst(&ui.keys, "  {abort} gives up.", &t, false);
-		HELP_ADD(sb_detach(&t));
+		help_add(l, sb_detach(&t), ACT_NONE, false);
 	}
-#undef HELP_ADD
-	*out = v;
-	return n;
 }
 
-static void help_free(char **v, size_t n)
+/* The next row from k in direction dir that runs an action, or k. */
+static size_t help_step(const struct help_list *l, size_t k, int dir)
 {
-	size_t i;
+	size_t i = k;
 
-	for (i = 0; i < n; i++)
-		free(v[i]);
-	free(v);
+	while (dir > 0 ? i + 1 < l->n : i > 0) {
+		i = dir > 0 ? i + 1 : i - 1;
+		if (l->v[i].act)
+			return i;
+	}
+	return k;
 }
 
-/* The help overlay. It scrolls when the terminal is too short for all of it. */
-void act_help(void)
+static const char *help_pane_name(void)
 {
-	struct strbuf dn = STRBUF_INIT, up = STRBUF_INIT;
-	char **lines;
-	int n = (int)help_build(&lines), top = 0, c;
+	switch (ui.active) {
+	case P_FILES:
+		return "Keys in the Files pane";
+	case P_SERIES:
+		return "Keys in the Series pane";
+	case P_MESSAGE:
+		return "Keys in the message pane";
+	default:
+		return "Keys in the diff";
+	}
+}
 
-	/* the first key of each for the footer */
-	keymap_describe(&ui.keys, ACT_DOWN, &dn);
-	keymap_describe(&ui.keys, ACT_UP, &up);
-	dn.len = strcspn(dn.buf, ",");
-	dn.buf[dn.len] = '\0';
-	up.len = strcspn(up.buf, ",");
-	up.buf[up.len] = '\0';
+/* The help as it is shown. */
+struct help_view {
+	struct help_list l;
+	char filter[64];
+	bool all;     /* all keys with their long descriptions */
+	bool typing;  /* the filter is being typed */
+	bool rebuild; /* the rows change with the filter or all */
+	size_t cur, top;
+	int rows; /* rows shown, set when drawn */
+};
+
+static void help_rebuild(struct help_view *v)
+{
+	help_free(&v->l);
+	help_build(&v->l, v->all, v->filter);
+	v->cur = v->l.n && v->l.v[0].act ? 0 : help_step(&v->l, 0, 1);
+	v->top = 0;
+	v->rebuild = false;
+}
+
+static void help_footer(const struct help_view *v, struct strbuf *foot)
+{
+	size_t n = v->l.n, rows = (size_t)v->rows;
+
+	if (v->typing) {
+		sb_addf(foot, "/%s_  Enter: run  Esc: stop searching",
+			v->filter);
+	} else {
+		keys_subst(&ui.keys,
+			   "Enter: run  {search}: search  {help}: ", foot,
+			   false);
+		sb_addf(foot, "%s  Esc: close",
+			v->all ? "this pane" : "all keys");
+	}
+	if (n > rows)
+		sb_addf(foot, "  (%zu-%zu of %zu)", v->top + 1,
+			v->top + rows < n ? v->top + rows : n, n);
+}
+
+/* Draw the help over the panes. Returns false when the screen is too small. */
+static bool help_draw(struct help_view *v)
+{
+	int w = COLS < 80 ? COLS : 80, h, y0, x0, i;
+	const struct help_list *l = &v->l;
+	struct strbuf foot = STRBUF_INIT;
+	char head[128];
+
+	h = LINES < (int)l->n + 4 ? LINES : (int)l->n + 4;
+	if (h < 6)
+		h = LINES < 6 ? LINES : 6;
+	v->rows = h - 4;
+	if (v->rows < 1 || w < 20)
+		return false;
+	/* the last page is full, and the cursor in view */
+	if (v->top + (size_t)v->rows > l->n)
+		v->top = l->n > (size_t)v->rows ? l->n - (size_t)v->rows : 0;
+	if (v->cur < v->top)
+		v->top = v->cur;
+	if (v->cur >= v->top + (size_t)v->rows)
+		v->top = v->cur - (size_t)v->rows + 1;
+	draw_under();
+	y0 = (LINES - h) / 2;
+	x0 = (COLS - w) / 2;
+	for (i = 0; i < h; i++)
+		fill_line(y0 + i, x0, w);
+	if (*v->filter)
+		snprintf(head, sizeof(head), "Keys that match /%s", v->filter);
+	else
+		snprintf(head, sizeof(head), "%s",
+			 v->all ? "All keys" : help_pane_name());
+	attron(A_BOLD);
+	puts_at(y0 + 1, x0 + 2, w - 4, head);
+	attroff(A_BOLD);
+	for (i = 0; i < v->rows && v->top + (size_t)i < l->n; i++) {
+		size_t k = v->top + (size_t)i;
+		int y = y0 + 2 + i;
+
+		if (k == v->cur && l->v[k].act) {
+			attron(A_REVERSE);
+			fill_line(y, x0 + 1, w - 2);
+			mvaddch(y, x0 + 1, '>');
+		}
+		if (l->v[k].title)
+			attron(A_BOLD);
+		puts_at(y, x0 + 2, w - 4, l->v[k].text);
+		attroff(A_BOLD | A_REVERSE);
+	}
+	if (!l->n)
+		puts_at(y0 + 2, x0 + 2, w - 4, "  No key matches.");
+	help_footer(v, &foot);
+	attron(A_BOLD);
+	puts_at(y0 + h - 2, x0 + 2, w - 4, foot.buf);
+	draw_frame(y0, x0, h, w);
+	attroff(A_BOLD);
+	refresh();
+	sb_release(&foot);
+	return true;
+}
+
+/* A key while the filter is typed. */
+static void help_type(struct help_view *v, int c)
+{
+	size_t len = strlen(v->filter);
+
+	if (c == 27) {
+		v->typing = false;
+		v->filter[0] = '\0';
+	} else if (c == KEY_BACKSPACE || c == 127 || c == 8) {
+		if (len)
+			v->filter[len - 1] = '\0';
+		else
+			v->typing = false;
+	} else if (c >= 0x20 && c < 0x7f && len + 1 < sizeof(v->filter)) {
+		v->filter[len] = (char)c;
+		v->filter[len + 1] = '\0';
+	} else {
+		return;
+	}
+	v->rebuild = true;
+}
+
+/* A movement key. Returns false when c is none. */
+static bool help_move(struct help_view *v, int c, enum action act)
+{
+	const struct help_list *l = &v->l;
+	int i;
+
+	if (act == ACT_DOWN || act == ACT_UP) {
+		v->cur = help_step(l, v->cur, act == ACT_DOWN ? 1 : -1);
+	} else if (act == ACT_PAGE_DOWN || c == KEY_NPAGE) {
+		for (i = 0; i < v->rows; i++)
+			v->cur = help_step(l, v->cur, 1);
+	} else if (act == ACT_PAGE_UP || c == KEY_PPAGE) {
+		for (i = 0; i < v->rows; i++)
+			v->cur = help_step(l, v->cur, -1);
+	} else if (act == ACT_TOP || c == KEY_HOME) {
+		v->cur = help_step(l, 0, 1);
+		v->top = 0;
+	} else if (act == ACT_BOTTOM || c == KEY_END) {
+		v->cur = l->n && l->v[l->n - 1].act ?
+				 l->n - 1 :
+				 help_step(l, l->n ? l->n - 1 : 0, -1);
+		v->top = l->n;
+	} else {
+		return false;
+	}
+	return true;
+}
+
+/*
+ * The help. It lists the keys of the active pane, ? lists all of them with
+ * their long descriptions, and / searches all of them. Enter runs the
+ * action of the row with the cursor. Returns that action, or ACT_NONE
+ * when the help was closed.
+ */
+enum action help_pick(void)
+{
+	struct help_view v = { .rebuild = true };
+	enum action res = ACT_NONE, act;
+	int c;
 
 	for (;;) {
-		int w = COLS < 78 ? COLS : 78,
-		    h = LINES < n + 3 ? LINES : n + 3;
-		int rows = h - 3, y0, x0, i;
-		enum action act;
-		char foot[120];
-
-		if (rows < 1 || w < 20)
+		if (v.rebuild)
+			help_rebuild(&v);
+		if (!help_draw(&v))
 			break;
-		if (top > n - rows)
-			top = n - rows;
-		if (top < 0)
-			top = 0;
-		draw_under();
-		y0 = (LINES - h) / 2;
-		x0 = (COLS - w) / 2;
-		for (i = 0; i < h; i++)
-			fill_line(y0 + i, x0, w);
-		/* section titles are the lines that start at the left */
-		for (i = 0; i < rows && top + i < n; i++) {
-			bool title = lines[top + i][0] &&
-				     lines[top + i][0] != ' ';
-
-			if (title)
-				attron(A_BOLD);
-			puts_at(y0 + 1 + i, x0 + 2, w - 4, lines[top + i]);
-			if (title)
-				attroff(A_BOLD);
-		}
-		if (rows < n)
-			snprintf(foot, sizeof(foot),
-				 "%s/%s: scroll (%d-%d of %d)"
-				 "  other keys: close",
-				 dn.buf, up.buf, top + 1, top + rows, n);
-		else
-			snprintf(foot, sizeof(foot), "Press any key to close.");
-		attron(A_BOLD);
-		puts_at(y0 + h - 2, x0 + 2, w - 4, foot);
-		draw_frame(y0, x0, h, w);
-		attroff(A_BOLD);
-		refresh();
 		c = user_key();
 		if (c == KEY_RESIZE)
 			continue;
-		act = overlay_action(c);
-		if (rows < n && (act == ACT_DOWN || c == KEY_DOWN))
-			top++;
-		else if (rows < n && (act == ACT_UP || c == KEY_UP))
-			top--;
-		else if (rows < n &&
-			 (act == ACT_PAGE_DOWN || c == ' ' || c == KEY_NPAGE))
-			top += rows;
-		else if (rows < n && (act == ACT_PAGE_UP || c == KEY_PPAGE))
-			top -= rows;
-		else if (rows < n && (act == ACT_TOP || c == KEY_HOME))
-			top = 0;
-		else if (rows < n && (act == ACT_BOTTOM || c == KEY_END))
-			top = n;
-		else
+		if (c == '\n' || c == '\r' || c == KEY_ENTER) {
+			if (v.cur < v.l.n)
+				res = v.l.v[v.cur].act;
 			break;
+		}
+		if (c == KEY_DOWN || c == KEY_UP) {
+			help_move(&v, c, c == KEY_DOWN ? ACT_DOWN : ACT_UP);
+			continue;
+		}
+		if (v.typing) {
+			help_type(&v, c);
+			continue;
+		}
+		act = overlay_action(c);
+		if (help_move(&v, c, act))
+			continue;
+		if (act == ACT_HELP) {
+			v.all = !v.all;
+			v.rebuild = true;
+		} else if (act == ACT_SEARCH) {
+			v.typing = true;
+		} else {
+			break;
+		}
 	}
-	help_free(lines, (size_t)n);
-	sb_release(&dn);
-	sb_release(&up);
+	help_free(&v.l);
+	return res;
 }
 
 /* ---- colours of text windows -------------------------------------------- */

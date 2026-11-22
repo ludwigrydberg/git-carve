@@ -24,7 +24,7 @@ assert_index_text f.c 'a\nb\nc\n'
 keys y
 wait_index f.c 'a\nb\nB\nc\n'
 keys '?'
-wait_screen "Keys (bind with git config"
+wait_screen "Keys in the diff"
 # next-pane is under "Panes and the view", pages down
 _n=5
 until screen | grep -q -F "Tab, F2"; do
@@ -33,7 +33,7 @@ until screen | grep -q -F "Tab, F2"; do
 	step_keys PgDn
 done
 keys Escape
-wait_gone "Keys (bind with git config"
+wait_gone "Keys in the diff"
 # q is free now, and nothing happens
 step_keys q
 tmux -L "$TMUX_SOCK" has-session -t t 2>/dev/null || fail "q still quits"

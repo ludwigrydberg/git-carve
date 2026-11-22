@@ -95,8 +95,9 @@ enum action {
 };
 
 struct action_info {
-	const char *name; /* for git config, carve.keys.<name> */
-	const char *keys; /* default keys, space separated */
+	const char *name;  /* for git config, carve.keys.<name> */
+	const char *keys;  /* default keys, space separated */
+	const char *brief; /* one line for the help of a pane */
 	const char *help;
 };
 

@@ -1348,6 +1348,18 @@ static void do_repaint(void)
 	clearok(curscr, TRUE);
 }
 
+static bool handle_action(enum action act, int c);
+
+/* The help, and then the action chosen in it as if its key was pressed. */
+static void act_help(void)
+{
+	enum action act = help_pick();
+
+	ui.cur_act = act;
+	if (act != ACT_NONE && act != ACT_HELP && !handle_action(act, 0))
+		ui.help_quit = true;
+}
+
 static void (*const action_fn[NACTIONS])(void) = {
 	[ACT_SPLIT] = do_split,
 	[ACT_SERIES_PANE] = do_series_pane,
@@ -1420,19 +1432,14 @@ static void (*const action_fn[NACTIONS])(void) = {
 	[ACT_REFRESH] = do_refresh,
 	[ACT_SIGNOFF] = do_signoff,
 	[ACT_UNDO] = act_undo,
-	[ACT_HELP] = act_help,
 	[ACT_REPAINT] = do_repaint,
 	[ACT_REWORD] = act_reword,
+	[ACT_HELP] = act_help,
 };
 
 static bool handle_key(int c)
 {
-	struct dpane *dp = active_dp();
-	struct undo_state ub = { 0 };
-	bool quit = false;
-	char *what = NULL;
 	enum action act;
-	const char *op;
 
 	if (c == KEY_RESIZE)
 		return true;
@@ -1458,10 +1465,8 @@ static bool handle_key(int c)
 	 */
 	if (ui.diff_stale &&
 	    !((ui.active == P_FILES || ui.active == P_SERIES) &&
-	      is_move_key(c))) {
+	      is_move_key(c)))
 		diffs_load();
-		dp = active_dp();
-	}
 	act = key_action(&ui.keys, c);
 	ui.cur_act = act;
 	if (act == ACT_PREFIX) {
@@ -1486,6 +1491,19 @@ static bool handle_key(int c)
 			return true;
 		}
 	}
+	return handle_action(act, c) && !ui.help_quit;
+}
+
+/*
+ * Do what an action does, with its undo entry. c is the key pressed for
+ * it, or 0. Returns false to quit.
+ */
+/*
+ * Whether an action is answered before it runs, with a message or by the
+ * Untracked row folding. Returns true when it is done with.
+ */
+static bool action_intercepted(enum action act, const struct dpane *dp)
+{
 	if (ui.active == P_MESSAGE && message_key(act))
 		return true;
 	/*
@@ -1524,6 +1542,19 @@ static bool handle_key(int c)
 							 0);
 		return true;
 	}
+	return false;
+}
+
+static bool handle_action(enum action act, int c)
+{
+	struct dpane *dp = active_dp();
+	struct undo_state ub = { 0 };
+	bool quit = false;
+	char *what = NULL;
+	const char *op;
+
+	if (action_intercepted(act, dp))
+		return true;
 	op = undo_op(act);
 	if (op && undo_kind(op) == UNDO_NONE)
 		op = NULL;

@@ -99,7 +99,7 @@ file under **Staged** to check the result, then press `c` to commit.
 | `t` | move the lines into another commit now |
 | `s` | split a commit |
 | `u` | undo |
-| `?` | all keys |
+| `?` | the keys of this pane, `?` again for all keys |
 
 The diff pane shows the unstaged changes of a file in Unstaged and the
 staged changes of a file in Staged. Space moves a line from one to the
@@ -112,8 +112,10 @@ with the appropriate ref.
 
 ## More keys
 
-`?` lists every action with its current key. The most useful ones beyond
-the quick start:
+`?` lists the keys of the pane you are in, and `?` again every key. `/`
+in the help searches them, and Enter runs the one under the cursor.
+`D` shows the whole commit, its message, stat and diff. The most useful
+keys beyond the quick start:
 
 | Key | Action |
 |---|---|

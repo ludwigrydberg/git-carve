@@ -263,7 +263,7 @@ step_keys Escape BTab
 # 5. F5, then ? (shown once F5 is done)
 start refresh
 keys F5 '?'
-until_screen "Keys (bind"
+until_screen "Keys in the"
 step_keys q
 
 # 6. stage one file, commit it

@@ -383,7 +383,8 @@ struct ui {
 	 * until another file is selected or load-diff
 	 */
 	char *stopped_path;
-	bool signoff; /* commits get Signed-off-by (Ctrl-S) */
+	bool signoff;	/* commits get Signed-off-by (Ctrl-S) */
+	bool help_quit; /* quit was chosen in the help */
 	struct diff_opts
 		dopts; /* how the diff panes show diffs, set with + - W w */
 	struct keymap keys; /* default + carve.keys.* */

@@ -34,6 +34,6 @@ size_t paint_absorb(char *const *lines, size_t n, size_t i, struct span *sp,
 		    size_t max);
 bool confirm_list(const char *title, char *const *lines, size_t n,
 		  const char *verb, line_paint_fn paint);
-void act_help(void);
+enum action help_pick(void);
 
 #endif
