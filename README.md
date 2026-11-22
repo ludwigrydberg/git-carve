@@ -1,30 +1,46 @@
 # git-carve
 
-**Build and edit Git patch series in your terminal.**
+**Carve your changes into a patch series where every commit does one
+thing.**
 
-Stage individual lines, even when unrelated changes share a diff hunk.
-Split an existing commit or move a fix into the commit it belongs in.
-The file list, diff, commit message and branch's commits are all visible
-in one screen.
+git-carve is a terminal UI for editing a patch series before review. It
+stages single lines and splits commits. It moves changes into the commit
+they belong in anywhere in the branch. You see the whole series while
+you edit it.
 
 ![git carve showing the file list, commit message and diff for a driver change](docs/images/screenshot.png)
 
-## What you can do with it
+## What it is for
 
-- **Stage one line out of a hunk.** Two changes next to each other end
-  up in separate commits.
-- **Split a commit**, also one deep in your branch. The pieces always add
-  up to the original.
-- **Fix an older commit.** Move lines into it directly, or make a
-  `fixup!` commit now and squash them all at the end.
-- **Find the right commit for a fix.** git-carve looks up which commit
-  last touched the lines and suggests it.
-- **Undo** a staged line, a commit or a whole split.
+**A hunk mixes a fix and a cleanup.** Stage the fix line by line and
+commit it. Then commit the cleanup.
 
-git-carve uses your Git configuration and hooks. It checks the resulting
-trees after rewriting commits and attempts to restore the original state
-if a check fails. When a failed rollback can be retried, the error tells
-you how to resume recovery.
+**A reviewer wants a change in patch 2 of 5.** Make the change and press
+`t` to move it into patch 2. Or press `f` for a `fixup!` commit and
+squash all fixups with `S` before you send the next version.
+
+**A commit does two things.** Press `s` and commit the pieces one at a
+time. The split only finishes when the pieces add up to the original.
+
+**You don't remember which commit a fix belongs in.** `ga` proposes the
+commit that last touched the lines. You review the plan before anything
+is rewritten.
+
+**You got it wrong.** Press `u`. Every action that changes the index or
+HEAD can be undone. That includes commits and splits and squashes.
+Undoing a commit stages its changes again. Discarded lines are saved
+first so `u` brings them back. A finished split or move is one undo
+step. While it is in progress you can step back inside it or give it up
+with `X`. The history is kept as refs so it survives a restart and
+`git gc`.
+
+Commit messages start with the subsystem prefix from the history of the
+files. `Ctrl-S` toggles sign-off. A split keeps the Gerrit `Change-Id` in
+one of its commits.
+
+git-carve runs git with your config and hooks. After a rewrite it checks
+the resulting trees and tries to restore the original state if a check
+fails.
 
 ## See it work
 
@@ -34,23 +50,14 @@ you how to resume recovery.
 pane and committed. Another moves into an older commit. `J` and `K`
 browse the result.*
 
-## How git-carve compares with Lazygit and Tig
+## How git-carve compares to other Git frontends
 
-Tig is a terminal Git browser with line-by-line staging. Lazygit is a
-broader Git client that also supports line-by-line staging and moving
-changes between commits with custom patches. git-carve focuses on
-editing and reviewing a patch series.
-([Tig manual](https://jonas.github.io/tig/doc/manual.html) ·
-[Lazygit custom patches](https://github.com/jesseduffield/lazygit#rebase-magic-custom-patches))
-
-- **Move a replacement from the diff.** `gm` marks both sides of a
-  changed line. Press `t` to choose the commit that should receive the
-  change.
-- **Split a commit and check the result.** Commit the pieces one at a
-  time. The split can finish once the pieces reproduce the original
-  commit's tree. Use `X` to abort an in-progress split.
-- **Review fixes for several commits at once.** `ga` proposes where each
-  change belongs. Review the plan before applying it.
+git-carve only edits and reviews patch series. It is not a full Git
+client and Tig or Lazygit suit that better. Tig is a terminal Git
+browser with line by line staging. Lazygit is a broader client that can
+also stage lines and move changes between commits with custom patches.
+([Tig](https://jonas.github.io/tig/) ·
+[Lazygit](https://github.com/jesseduffield/lazygit))
 
 ## Install
 
@@ -78,8 +85,8 @@ With `$HOME/.local/bin` in your `PATH`, `git carve` works, and
 
 Run `git carve` in a repository with unstaged changes. Select a file in
 **Files** and use `Tab` to reach the diff. The active pane has a heavy
-frame, and its top line names the pane `Tab` goes to next. Put the cursor on a changed
-line and press `Space` to stage it. For a replacement, press `gm` to
+frame, and its top line names the pane `Tab` goes to next. Put the
+cursor on a changed line and press `Space` to stage it. For a replacement, press `gm` to
 mark both the old and new lines before pressing `Space`. The status bar
 shows the shortcut when the diff cursor is on a paired line. Select the
 file under **Staged** to check the result, then press `c` to commit.
