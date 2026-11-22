@@ -771,8 +771,8 @@ static bool worktree_items(void)
 
 /*
  * A section's colour, as git status has it, unstaged red, staged green,
- * the commit shown cyan. Without colours there is none, and the rule and
- * bold do the work.
+ * the commit shown cyan. Without colours there is none, and bold does the
+ * work.
  */
 static attr_t sec_attr(enum sec sec)
 {
@@ -848,11 +848,11 @@ static int files_dir_row(int y, size_t k, int w, bool mine)
 	return need;
 }
 
-/* A section's row, a rule with the name in it, "── Staged (2) ──────". */
+/* A section's row, its name in bold and its colour, " Staged (2)". */
 static void files_section_row(int y, size_t k, int w)
 {
 	const struct fitem *it = &ui.items[k];
-	int x, tl, x0 = ui.lay.list_x;
+	int x0 = ui.lay.list_x;
 	size_t n = 0, m;
 	char buf[1024];
 
@@ -878,14 +878,9 @@ static void files_section_row(int y, size_t k, int w)
 	/* the cursor on it (the Untracked row, which folds): '>' */
 	if (k == ui.fcur)
 		attron(ui.active == P_FILES ? A_REVERSE : A_UNDERLINE);
-	tl = (int)strlen(buf);
-	mvaddch(y, x0, k == ui.fcur ? '>' : line_ch(ACS_HLINE, '-'));
-	for (x = tl + 3; x < w; x++)
-		mvaddch(y, x0 + x, line_ch(ACS_HLINE, '-'));
-	mvaddch(y, x0 + 1, ' ');
-	puts_at(y, x0 + 2, w - 2, buf);
-	if (tl + 2 < w)
-		mvaddch(y, x0 + tl + 2, ' ');
+	fill_line(y, x0, w);
+	mvaddch(y, x0, k == ui.fcur ? '>' : ' ');
+	puts_at(y, x0 + 1, w - 1, buf);
 	attroff(A_BOLD | A_REVERSE | A_UNDERLINE | sec_attr(it->sec));
 }
 

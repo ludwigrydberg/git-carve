@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
 # Readable in a quarter of a tmux window. Files are grouped by directory
-# under a dim row, and sections are rules. Below carve.narrowWidth the
+# under a dim row, and sections are bold labels. Below carve.narrowWidth the
 # lists stack above the diffs. o zooms any pane, gS hides the Series pane,
 # and h and l scroll the Files pane's paths. F5 reads carve.narrowWidth
 # again.
@@ -23,7 +23,7 @@ for p in $(git ls-files); do
 done
 git add net/core/dev.c
 
-# --- wide, side by side, grouped, with rules
+# --- wide, side by side, grouped, with section labels
 TUI_W=134 TUI_H=30 tui_start
 wait_screen "Unstaged (3)"
 wait_screen " drivers/net/ethernet/intel/ice/"
@@ -32,7 +32,7 @@ wait_screen " drivers/net/ethernet/intel/ice/"
 inner | grep -q '^>M   dev.c' || fail "staged file first: $(screen)"
 inner | grep -q '^ M Makefile' || fail "top-level file first: $(screen)"
 inner | grep -q '^ M   ice_main.c' || fail "name under its directory"
-screen | grep -q 'Staged (1)' || fail "staged rule"
+inner | grep -q '^ Staged (1) *x' || fail "staged label: $(screen)"
 inner | grep -q '^ net/core/' || fail "staged directory row"
 [ "$(screen_row 'Series')" = 2 ] || fail "Series at the top"
 [ "$(screen_row 'Files')" -lt "$(screen_row 'Staged (1)')" ] ||
