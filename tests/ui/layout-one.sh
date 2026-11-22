@@ -1,9 +1,10 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# The layout as users start with it, one Diff pane with the diff of the
-# cursor's section, and the Message pane on top of it. e in the Message
-# pane writes the message in the editor, from the prefix and sign-off, and
-# c commits with it without the editor and empties it. gc hides the pane.
+# The layout as users start with it, one Diff pane with the diffs of all
+# files of the cursor's section, and the Message pane on top of it. e in
+# the Message pane writes the message in the editor, from the prefix and
+# sign-off, and c commits with it without the editor and empties it. gc
+# hides the pane.
 # When narrow, the Message pane is a pane of its own. carve.layout = two
 # shows both diffs. A commit shown in the Series pane shows its message.
 CARVE_TEST_LAYOUT=default
@@ -31,7 +32,7 @@ wait_screen "M a.c"
 wait_screen "Message"
 wait_screen "No message yet."
 # the first file is the staged a.c, with its staged diff
-wait_screen "Diff (staged): a.c"
+wait_screen "Diff (staged): a.c  [all files]"
 wait_screen "+l 5 staged"
 screen | grep -q "Diff (unstaged)" && fail "two diffs shown"
 # the unstaged a.c (past the Unstaged row): its unstaged diff

@@ -1990,6 +1990,7 @@ int ui_main(struct repo *r, const char *range)
 	ui.bg.fd = -1;
 	ui.series_hidden = !repo_config_bool(r, "carve.seriesPane", true);
 	ui.lay.msg_on = repo_config_bool(r, "carve.messagePane", true);
+	ui.all_files = repo_config_bool(r, "carve.allFiles", true);
 	{
 		struct strbuf warn = STRBUF_INIT;
 

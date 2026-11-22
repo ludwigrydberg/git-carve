@@ -210,13 +210,14 @@ const struct action_info actions[NACTIONS] = {
 			 "{down} / {up} the active pane's divider, = puts the "
 			 "layout back, Enter ends it" },
 	[ACT_ALL_FILES] = { "all-files", "gD",
-			    "the diffs of all files in one view, or one file",
+			    "one file at a time, or the diffs of all files",
 			    "the diff pane shows the diffs of all files of its "
 			    "section one after another. Moving past the end of "
 			    "a file goes on into the next, and the Files cursor "
 			    "follows, and {next-file} and {prev-file} jump to "
 			    "the next and previous file. {all-files} again "
-			    "shows one file" },
+			    "shows one file (carve.allFiles = false: one file "
+			    "from the start)" },
 	[ACT_SERIES_PANE] = { "series-pane", "gS",
 			      "hide or show the Series pane",
 			      "hide the Series pane, or show it again "

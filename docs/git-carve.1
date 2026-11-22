@@ -463,8 +463,10 @@ Hide the Series pane, or show it again
 still move through the commits).
 .TP
 .B gD
-Show the diffs of all files of a section one after another in the diff
-pane, or one file again. Each file starts with a bar with its status,
+Show one file at a time in the diff pane, or the diffs of all files of
+a section one after another again, as at the start
+.RB ( carve.allFiles ).
+Each file starts with a bar with its status,
 path and how many lines it adds and removes. Moving past the end of a
 file goes on into the next one and the Files cursor follows, and the
 keys act on the file the cursor is in.
@@ -909,6 +911,12 @@ across the whole width on top and the diffs below. The default is 100.
 section.
 .B two
 shows both the Unstaged and the Staged diff.
+.TP
+.B carve.allFiles
+Whether the diff pane shows the diffs of all files one after another at
+the start. The default is true, and
+.B gD
+toggles it.
 .TP
 .B carve.messagePane
 Whether the Message pane is shown at the start. The default is true,

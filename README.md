@@ -175,6 +175,7 @@ Set these with `git config [--global] carve.<name> <value>`.
 | `carve.untrackedFiles` | `async` | look for untracked files in the background, or `no` |
 | `carve.narrowWidth` | `100` | below this many columns the panes stack |
 | `carve.layout` | `one` | `one` shows one diff pane for the cursor's section, `two` shows the unstaged and the staged diff |
+| `carve.allFiles` | `true` | show the diffs of all files in one view at the start (`gD` toggles it) |
 | `carve.messagePane` | `true` | show the commit message pane at the start (`gc` toggles it) |
 | `carve.seriesPane` | `true` | set to `false` to start with the Series pane hidden |
 | `carve.seriesStep` | `5` | how many older commits the Series pane loads at a time |

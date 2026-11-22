@@ -65,12 +65,16 @@ new_repo() {
 		GIT_CONFIG_COUNT GIT_OBJECT_DIRECTORY GIT_PREFIX \
 		GIT_ALTERNATE_OBJECT_DIRECTORIES
 	: >"$GIT_CONFIG_GLOBAL"
-	# The TUI tests were written for two diff panes and no message
-	# pane. CARVE_TEST_LAYOUT=default tests the TUI as it starts for
-	# users.
+	# The TUI tests were written for two diff panes, no message pane
+	# and one file at a time. CARVE_TEST_LAYOUT=default tests the TUI
+	# as it starts for users.
 	if [ "${CARVE_TEST_LAYOUT:-two}" = two ]; then
-		printf '[carve]\n\tlayout = two\n\tmessagePane = false\n' \
-			>"$GIT_CONFIG_GLOBAL"
+		cat >"$GIT_CONFIG_GLOBAL" <<-EOF
+		[carve]
+			layout = two
+			messagePane = false
+			allFiles = false
+		EOF
 	fi
 	if [ -n "$CARVE_HOSTILE" ]; then
 		write_hostile_config "$GIT_CONFIG_GLOBAL"
