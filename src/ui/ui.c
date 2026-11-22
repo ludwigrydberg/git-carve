@@ -1891,6 +1891,32 @@ static void offer_cleanup(void)
 }
 
 /*
+ * The pane git carve starts in (carve.startPane), once the first screen is
+ * loaded. Files when the one asked for is not there: the Series pane
+ * hidden or without commits, the Message pane hidden, no file to diff.
+ */
+static int start_pane(void)
+{
+	const char *p = repo_config(ui.r, "carve.startPane");
+
+	if (!p || !strcmp(p, "files"))
+		return P_FILES;
+	if (!strcmp(p, "series"))
+		return series_mode() && !ui.series_hidden ? P_SERIES : P_FILES;
+	if (!strcmp(p, "message"))
+		return ui.lay.msg_on ? P_MESSAGE : P_FILES;
+	if (!strcmp(p, "diff")) {
+		if (!ui.path)
+			return P_FILES;
+		/* the diff of the cursor's section, as Files shows it */
+		return one_side() ? P_STAGED : P_UNSTAGED;
+	}
+	set_warn("carve.startPane = %s is not files, diff, series or message",
+		 p);
+	return P_FILES;
+}
+
+/*
  * The gits of the first screen that need no answer of another run side by
  * side with git status, the slowest of them.
  */
@@ -2004,6 +2030,7 @@ int ui_main(struct repo *r, const char *range)
 	ui.active = P_FILES;
 	reload();
 	repo_prefetch_drop(r);
+	ui.active = start_pane();
 	offer_cleanup();
 	for (;;) {
 		draw();

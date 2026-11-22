@@ -915,6 +915,14 @@ section.
 .B two
 shows both the Unstaged and the Staged diff.
 .TP
+.B carve.startPane
+The pane git carve starts in:
+.BR files " (the default), " diff ", " series " or " message .
+.B diff
+is the diff of the section the Files cursor is in. A pane that is not
+shown, the Series pane without commits or the diff without a file to
+show starts in Files.
+.TP
 .B carve.allFiles
 Whether the diff pane shows the diffs of all files one after another at
 the start. The default is true, and
