@@ -37,7 +37,7 @@ wait_screen 'REBASE 2/2'
 wait_screen 'git rebase --continue goes on'
 wait_screen 'Commit HEAD (1)'
 keys Tab
-wait_screen '> Commit HEAD: a.c'
+wait_active 'Commit HEAD: a.c'
 # its lines move with f, into a gap as a new commit, not by staging
 keys O
 wait_screen "on a commit's lines: Space takes them out"

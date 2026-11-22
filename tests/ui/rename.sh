@@ -17,7 +17,7 @@ tui_start
 wait_screen "R old.c -> new.c"
 screen | grep -q ' D old.c' && fail "old.c listed on its own"
 keys Tab
-wait_screen "> Unstaged: old.c -> new.c"
+wait_active "Unstaged: old.c -> new.c"
 wait_screen "+LINE 5"
 wait_screen "+LINE 15"
 # a line stages the move and that line
@@ -33,7 +33,7 @@ keys Tab
 wait_screen "+LINE 5"
 # Files pane, staged section (the first): Enter unstages both halves
 keys Tab Tab
-wait_screen "> Files"
+wait_active "Files"
 keys g g Enter
 wait_screen "unstaged new.c"
 [ -n "$(git ls-files -s old.c)" ] || fail "old.c not back in the index"

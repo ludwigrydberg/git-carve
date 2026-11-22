@@ -35,7 +35,7 @@ keys j j
 wait_screen "Unstaged: a.c"
 wait_screen "+FIVE"
 keys Tab
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 keys ')'
 wait_cursor '5       -line 5$'
 cursor_row | grep -q '5       -line 5$' || fail ") -> $(cursor_row)"
@@ -60,32 +60,32 @@ wait_index a.c "$(awk '{ if (NR == 5) print "FIVE"; else if (NR == 8)
 
 # } { move between files with unstaged changes, a.c b.c d.c z.c but not c.c
 keys '}'
-wait_screen "> Unstaged: b.c"
+wait_active "Unstaged: b.c"
 wait_cursor '1 *-b$'
 cursor_row | grep -q '1 *-b$' || fail "} lands on the change: $(cursor_row)"
 keys '}'
-wait_screen "> Unstaged: d.c"
+wait_active "Unstaged: d.c"
 wait_screen "1 +D"
 keys '}'
-wait_screen "> Unstaged: z.c"
+wait_active "Unstaged: z.c"
 wait_screen "1       -z 1"
 keys '}'
 wait_screen "no next file with unstaged changes"
 keys '{' '{' '{'
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 wait_screen "+FIVE"
 # in the Staged pane, } goes by the Staged section
 keys Tab
-wait_screen "> Staged: a.c"
+wait_active "Staged: a.c"
 keys '}'
-wait_screen "> Staged: c.c"
+wait_active "Staged: c.c"
 wait_screen "1 +C"
 
 # half pages, in z.c's 200-line diff
 keys BTab
-wait_screen "> Unstaged: c.c"
+wait_active "Unstaged: c.c"
 keys '{'
-wait_screen "> Unstaged: z.c"
+wait_active "Unstaged: z.c"
 wait_screen "1       -z 1"
 step_keys g g C-d
 r1=$(cursor_row)

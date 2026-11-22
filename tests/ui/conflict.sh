@@ -65,7 +65,7 @@ grep -q '^b-theirs$' f.c || fail "T"
 
 # in the Files pane, the whole file, after asking
 keys BTab
-wait_screen "> Files"
+wait_active "Files"
 # f.c, resolved, is in Staged above, and g.c last
 keys G
 wait_screen ">U g.c"

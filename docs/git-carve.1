@@ -44,6 +44,15 @@ order of
 the diff of the selected file. Diff lines show their old and new line
 numbers.
 .PP
+Every pane has a frame with its title in the top line. The active pane's
+frame has heavy lines in colour and names the pane Tab goes to next.
+Without UTF-8 all frames are thin and the active one is bold, and with
+.B carve.asciiLines
+it is drawn with
+.B =
+and
+.BR # .
+.PP
 The Diff pane shows the diff of the section the cursor is in. A file of
 the Unstaged section shows its unstaged changes (the
 .B Unstaged
@@ -762,7 +771,8 @@ or
 Tab width in the TUI diff panes (default 8).
 .TP
 .B carve.asciiLines
-Draw pane borders with ASCII characters instead of line-drawing ones.
+Draw the frames of the panes with ASCII characters instead of
+line-drawing ones.
 This is for terminals or locales that show them as garbage, often over
 ssh.
 Without it curses already falls back to ASCII where the terminal has no

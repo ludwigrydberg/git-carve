@@ -23,17 +23,17 @@ check_mono() {
 	wait_screen "+B"
 	screen_has_colors && fail "$1: colours used"
 	# cursor, active pane and change markers are characters
-	screen | grep -q '^>M f.c' || fail "$1: file cursor"
-	screen | grep -q '^> Files' || fail "$1: active pane"
+	inner | grep -q '^>M f.c' || fail "$1: file cursor"
+	active_title | grep -q '^Files' || fail "$1: active pane"
 	keys Tab
-	wait_screen "> Unstaged: f.c"
+	wait_active "Unstaged: f.c"
 	step_keys : 2 Enter
-	screen | cut -c32- | grep -q '^>  *2 +B' || fail "$1: diff cursor"
+	screen | cut -c33- | grep -q '^>  *2 +B' || fail "$1: diff cursor"
 	step_keys v j
-	screen | cut -c33- | grep -q '^\*' || fail "$1: range marker"
+	screen | cut -c34- | grep -q '^\*' || fail "$1: range marker"
 	keys Escape : 2 Enter m
 	wait_screen "1 line marked"
-	screen | cut -c33- | grep -q '^+ *2 +B' || fail "$1: mark marker"
+	screen | cut -c34- | grep -q '^+ *2 +B' || fail "$1: mark marker"
 	keys Space
 	wait_index f.c 'a\nb\nB\nc\n'
 	screen_has_colors && fail "$1: colours after an action"
@@ -50,12 +50,15 @@ check_mono "NO_COLOR"
 # an assignment before a function call may outlive the call in sh
 TUI_TERM='' TUI_ENV=''
 
-# with ASCII lines the pane separator is '|'
+# with ASCII lines the frames are drawn with + - |, and the active one
+# with # =
 git config carve.asciiLines true
 tui_start
 wait_screen "M f.c"
-[ "$(screen | sed -n '3,20p' | cut -c31 | sort -u)" = "|" ] ||
-	fail "separator: $(screen | sed -n '3,5p')"
+screen | grep -q '^+- Series: work tree --*+' ||
+	fail "frame: $(screen | sed -n '2,3p')"
+screen | grep -q '^#= Files' || fail "active frame: $(screen | grep Files)"
+screen | grep -q '^#>M f.c *#|' || fail "sides: $(screen | grep f.c)"
 tui_quit
 
 # carve.colors = 256: an added line in the 256 colour green, and in the

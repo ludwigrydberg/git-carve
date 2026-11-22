@@ -195,16 +195,13 @@ static void move_cursor(long delta)
 }
 
 /*
- * Tab and Shift-Tab go through Series, Files, the upper and the lower diff
- * pane.
+ * The panes Tab goes through, in the order Series, Files, the message and
+ * the diffs. Layout one has one diff pane, the one of the cursor's
+ * section. Returns how many there are.
  */
-static void next_pane(int dir)
+static int pane_order(int order[NPANES])
 {
-	/*
-	 * When zoomed, go to the next pane and stay zoomed. Layout one has
-	 * one diff pane, the one of the cursor's section.
-	 */
-	int order[5], n = 0, i, first;
+	int n = 0;
 
 	if (series_mode() && !ui.series_hidden)
 		order[n++] = P_SERIES;
@@ -217,18 +214,25 @@ static void next_pane(int dir)
 		order[n++] = P_UNSTAGED;
 		order[n++] = P_STAGED;
 	}
-	first = 0;
+	return n;
+}
 
-	for (i = 0; i < n && order[i] != ui.active; i++)
+/* The pane dir steps away from pane, Tab's for 1 and Shift-Tab's for -1. */
+int pane_after(int pane, int dir)
+{
+	int order[NPANES], n = pane_order(order), i;
+
+	for (i = 0; i < n && order[i] != pane; i++)
 		;
-	if (i == n || i < first)
-		i = first;
-	i += dir;
-	if (i >= n)
-		i = first;
-	if (i < first)
-		i = n - 1;
-	ui.active = order[i];
+	if (i == n)
+		i = 0;
+	return order[(i + dir + n) % n];
+}
+
+/* Zoomed, Tab goes to the next pane and stays zoomed. */
+static void next_pane(int dir)
+{
+	ui.active = pane_after(ui.active, dir);
 }
 
 /* Select Files entry k (a file or a fold row) as moving there would. */
@@ -1715,8 +1719,9 @@ static bool resize_key(int c)
 				       "move the dividers");
 			return true;
 		}
-		ui.lay.want_left_w =
-			ui.lay.files_w + (act == ACT_SCROLL_RIGHT ? 2 : -2);
+		/* the frames' width without the column they share */
+		ui.lay.want_left_w = ui.lay.box[P_FILES].w - 1 +
+				     (act == ACT_SCROLL_RIGHT ? 2 : -2);
 		return true;
 	}
 	if (act == ACT_DOWN)
@@ -1729,19 +1734,23 @@ static bool resize_key(int c)
 		return false;
 	}
 	if (!lists) {
-		ui.lay.want_top_h = ui.dp[0].h + d;
+		int top = ui.lay.box[P_UNSTAGED].h;
+
+		/* the rows below the frame's top line */
+		ui.lay.want_top_h = (top ? top - 1 : 0) + d;
 	} else if (ui.active == P_SERIES || !ui.lay.stacked) {
 		if (!ui.lay.series_h) {
 			set_msg(false, "the Series pane is hidden");
 			return true;
 		}
-		ui.lay.want_series_h = ui.lay.series_h + d;
+		ui.lay.want_series_h = ui.lay.box[P_SERIES].h + d;
 	} else {
 		/*
 		 * stacked, Files moves the divider between the lists and
 		 * the diffs
 		 */
-		ui.lay.want_list_h = ui.lay.series_h + 1 + ui.lay.files_h + d;
+		ui.lay.want_list_h =
+			ui.lay.box[P_SERIES].h + ui.lay.box[P_FILES].h + d;
 	}
 	return true;
 }

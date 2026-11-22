@@ -21,8 +21,8 @@ git config carve.seriesStep 2
 tui_start
 # clean, HEAD is shown, and the range is C8, C7, then the upstream
 wait_screen 'Commit HEAD (1)'
-screen | grep -q -E '^\* HEAD +[0-9a-f]+ C8' || fail "HEAD: $(screen | head -n 8)"
-screen | grep -q -E '^  ~1 +[0-9a-f]+ C7' || fail "~1: $(screen | head -n 8)"
+inner | grep -q -E '^\* HEAD +[0-9a-f]+ C8' || fail "HEAD: $(screen | head -n 8)"
+inner | grep -q -E '^  ~1 +[0-9a-f]+ C7' || fail "~1: $(screen | head -n 8)"
 wait_screen '-- up --'
 screen | grep -q ' C6' && fail "C6 loaded before it was reached"
 # past the range, two older commits at a time

@@ -73,13 +73,13 @@ keys k
 # a line of a.c staged, a.c is read again and c.c still comes from the
 # cache
 keys k Tab
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 keys : n 3 Enter Space
 wait_screen "staged 1 line"
 wait_screen "Staged: a.c"
 screen | grep -q "^.*+Xa 3" || fail "staged line not shown"
 keys BTab
-wait_screen "> Files"
+wait_active "Files"
 keys j j
 wait_screen "Unstaged: c.c"
 wait_screen "+Xc 3"

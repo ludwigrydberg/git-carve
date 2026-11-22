@@ -47,7 +47,7 @@ tui_quit
 tui_start
 wait_screen "M s.c"
 keys Tab Tab
-wait_screen "> Staged: s.c"
+wait_active "Staged: s.c"
 keys / needle Enter
 wait_screen "1 match in staged changes"
 tui_quit

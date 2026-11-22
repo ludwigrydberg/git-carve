@@ -14,10 +14,10 @@ commit_all base
 	i=1; while [ $i -le 200 ]; do echo "l $i"; i=$((i + 1)); done
 } >f.c
 
-# the diff pane's rows on the screen, from its title to the Staged title
+# the diff pane's rows on the screen, inside its frame
 pane() {
-	screen | cut -c32- | sed -n '/Unstaged: f.c/,/Staged: f.c/p' |
-		sed '1d;$d'
+	screen | cut -c33- | sed -n '/Unstaged: f.c/,/Staged: f.c/p' |
+		sed '1d;$d' | sed '$d'
 }
 # the pane row (1 = top) with the cursor
 cur_at() {
@@ -30,7 +30,7 @@ rows() {
 tui_start
 wait_screen 'M f.c'
 keys Tab
-wait_screen '> Unstaged: f.c'
+wait_active 'Unstaged: f.c'
 h=$(rows)
 
 keys G

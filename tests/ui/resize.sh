@@ -14,7 +14,7 @@ sed 's/line 5/LINE 5/' a.c >a.new && mv a.new a.c
 
 # the column of the Unstaged pane's title, the row of the Staged one
 title_col() {
-	screen | awk '/> Unstaged: a.c|  Unstaged: a.c/ {
+	screen | awk '/Unstaged: a.c/ {
 		print index($0, "Unstaged: a.c"); exit }'
 }
 staged_row() {
@@ -48,7 +48,7 @@ wait_change "$((col0 + 4))" title_col
 
 # the diffs' divider, from the Unstaged pane j moves it down
 keys Tab
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 keys j j j
 wait_change "$row0" staged_row
 [ "$(staged_row)" -eq $((row0 + 3)) ] || fail "j j j: $(staged_row), was $row0"

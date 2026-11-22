@@ -24,7 +24,7 @@ keys J
 wait_screen 'Commit HEAD (1)'
 wait_screen 'Commit HEAD: drv/a.c'
 wait_screen '+two P1'
-wait_match '^>M  *a\.c' || fail "a.c not selected: $(screen)"
+wait_inner '^>M  *a\.c' || fail "a.c not selected: $(screen)"
 # K shows the work tree again with its file selected
 keys K
 wait_screen 'Unstaged: drv/a.c'

@@ -61,7 +61,7 @@ keys C-l
 wait_screen "Unstaged (1)"
 # the work tree's a.c, below the commit shown
 keys G Tab
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 keys : o 2 Enter v j t
 wait_screen "Move the change into which commit?"
 keys j j j Enter

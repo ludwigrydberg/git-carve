@@ -23,7 +23,7 @@ printf 'n\n' >new2.c
 
 # the Files pane's cursor row
 fcur() {
-	screen | cut -c1-31 | grep '^>'
+	screen | cut -c2-30 | grep '^>'
 }
 
 tui_start
@@ -55,7 +55,7 @@ wait_screen "undid stage-file"
 
 # all 122, it asks first, and n leaves them
 keys g g k
-wait_screen "> Files"
+wait_active "Files"
 wait_fcur 'Unstaged (122)' || fail "on the row: $(fcur)"
 keys Enter
 wait_screen "Stage 122 files? [y/N]"
@@ -100,7 +100,7 @@ wait_screen "unstaged 2 files"
 # v takes a range of three files and Enter stages them, while Esc ends a
 # range
 keys g g v j j
-wait_match '^+M f1\.c' || fail "range mark: $(screen | grep 'f1\.c')"
+wait_inner '^+M f1\.c' || fail "range mark: $(screen | grep 'f1\.c')"
 keys Enter
 wait_screen "staged 3 files"
 [ "$(git diff --cached --name-only | tr '\n' ' ')" = "f0.c f1.c f10.c " ] ||

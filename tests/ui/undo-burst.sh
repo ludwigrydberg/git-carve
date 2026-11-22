@@ -26,7 +26,7 @@ git_shim "case \" \$* \" in *' commit-tree '*) echo x >>\"$tmp/ct\" ;; esac"
 tui_start
 wait_screen "M f.c"
 keys Tab
-wait_screen "> Unstaged: f.c"
+wait_active "Unstaged: f.c"
 # six hunks, one key each, as fast as tmux sends them
 keys a Space a Space a Space a Space a Space a Space
 wait_screen "(no unstaged changes)"
@@ -53,7 +53,7 @@ wait_lines 2
 
 # kept back at quit, written on the way out
 keys Tab
-wait_screen "> Staged: f.c"
+wait_active "Staged: f.c"
 keys a Space a Space
 wait_screen "unstaged 2 lines"
 keys q

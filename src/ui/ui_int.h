@@ -4,6 +4,8 @@
 #define CARVE_UI_INT_H
 
 #include <ctype.h>
+/* the wide API, for the heavy lines of the active pane's frame */
+#define NCURSES_WIDECHAR 1
 #include <curses.h>
 #include <errno.h>
 #include <langinfo.h>
@@ -42,6 +44,8 @@ enum {
 	C_STATUS,
 	C_WS,
 	C_ID, /* a commit id, yellow as git has it */
+	C_FRAME,
+	C_FRAME_ACT, /* the last role */
 };
 
 enum row_kind { R_NOTE, R_HUNK, R_LINE };
@@ -215,11 +219,23 @@ struct ui_msg {
 };
 
 /* Where the panes are, and the sizes asked for. */
+/* A pane's frame, its rows and columns with the lines around it. */
+struct box {
+	int y, x, h, w;
+};
+
+/*
+ * The panes' places on the screen. The sizes of Files, Series, the message
+ * and the diffs are inside their frames, which box[] holds. A pane that is
+ * not shown has a box of height 0.
+ */
 struct ui_layout {
+	struct box box[NPANES];
+	int list_x; /* the first column inside Series and Files */
 	int files_w, files_h;
-	int files_y;	  /* the Files pane's title row */
-	int series_h;	  /* rows of the Series pane (title included), or 0 */
-	bool stacked;	  /* narrow, lists on top and diffs below */
+	int files_y;  /* the top line of the Files pane's frame */
+	int series_h; /* rows of the Series pane (top line included), or 0 */
+	bool stacked; /* narrow, lists on top and diffs below */
 	int narrow_width; /* carve.narrowWidth */
 	bool zoom;	  /* the active diff pane on the whole screen (o) */
 	/*
@@ -424,6 +440,7 @@ int user_key(void);
  * staged.
  */
 int one_side(void);
+int pane_after(int pane, int dir);
 void read_view_config(void);
 
 #endif

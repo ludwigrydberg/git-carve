@@ -22,18 +22,18 @@ wait_screen 'Commit HEAD (1)'
 [ "$(screen_row ' P3')" -lt "$(screen_row ' P1')" ] ||
 	fail "P3 not above P1: $(screen)"
 keys BTab
-wait_screen '> Series'
-screen | grep -q -E '^> +HEAD +[0-9a-f]+ P3' || fail "cursor: $(screen)"
+wait_active 'Series'
+inner | grep -q -E '^> +HEAD +[0-9a-f]+ P3' || fail "cursor: $(screen)"
 keys j j
 wait_screen 'Commit ~2 (1)'
 wait_screen '+l 10 P1'
-screen | grep -q -E '^> +~2 +[0-9a-f]+ P1' || fail "cursor on P1: $(screen)"
+inner | grep -q -E '^> +~2 +[0-9a-f]+ P1' || fail "cursor on P1: $(screen)"
 keys Enter
-wait_screen '> Files'
-screen | grep -q -E '^\* +~2 +[0-9a-f]+ P1' || fail "shown row: $(screen)"
+wait_active 'Files'
+inner | grep -q -E '^\* +~2 +[0-9a-f]+ P1' || fail "shown row: $(screen)"
 keys BTab
-wait_screen '> Series'
+wait_active 'Series'
 keys Tab
-wait_screen '> Files'
+wait_active 'Files'
 tui_quit
 exit 0

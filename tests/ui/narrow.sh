@@ -24,18 +24,18 @@ done
 git add net/core/dev.c
 
 # --- wide, side by side, grouped, with rules
-TUI_W=130 TUI_H=30 tui_start
+TUI_W=134 TUI_H=30 tui_start
 wait_screen "Unstaged (3)"
 wait_screen " drivers/net/ethernet/intel/ice/"
 # Staged first, as in git status, with the cursor on its file, and in
 # Unstaged the top-level file first
-screen | grep -q '^>M   dev.c' || fail "staged file first: $(screen)"
-screen | grep -q '^ M Makefile' || fail "top-level file first: $(screen)"
-screen | grep -q '^ M   ice_main.c' || fail "name under its directory"
+inner | grep -q '^>M   dev.c' || fail "staged file first: $(screen)"
+inner | grep -q '^ M Makefile' || fail "top-level file first: $(screen)"
+inner | grep -q '^ M   ice_main.c' || fail "name under its directory"
 screen | grep -q 'Staged (1)' || fail "staged rule"
-screen | grep -q '^ net/core/' || fail "staged directory row"
+inner | grep -q '^ net/core/' || fail "staged directory row"
 [ "$(screen_row 'Series')" = 2 ] || fail "Series at the top"
-[ "$(screen_row '> Files')" -lt "$(screen_row 'Staged (1)')" ] ||
+[ "$(screen_row 'Files')" -lt "$(screen_row 'Staged (1)')" ] ||
 	fail "layout"
 # j stops on the Unstaged section's row and skips directory rows, Makefile,
 # then ice_main.c
@@ -46,29 +46,29 @@ wait_screen "Unstaged: drivers/net/ethernet/intel/ice/ice_main.c"
 # o in Files shows the list alone, the whole width
 keys o
 wait_gone "Unstaged: drivers"
-screen | grep -q 'drivers/net/ethernet/intel/ice/ *$' ||
+screen | grep -q 'drivers/net/ethernet/intel/ice/ *.$' ||
 	fail "zoomed Files: $(screen)"
 keys o
 wait_screen "Unstaged: drivers"
 # gS hides the Series pane, and J still moves
 keys g S
 wait_screen "Series pane hidden"
-screen | grep -q '  Series ' && fail "Series still shown"
+screen | grep -q ' Series: ' && fail "Series still shown"
 keys J
 wait_screen "Commit HEAD"
 keys g S
 wait_screen "Series pane shown"
-wait_screen "  Series"
+wait_screen " Series: "
 tui_quit
 
 # --- narrow, the lists across the width and the diffs below them
 TUI_W=80 TUI_H=30 tui_start
 wait_screen "Unstaged (3)"
-files=$(screen_row '> Files')
+files=$(screen_row 'Files')
 diff=$(screen_row 'Unstaged: net/core/dev.c')
 [ -n "$diff" ] && [ "$diff" -gt "$files" ] ||
 	fail "not stacked: $(screen)"
-screen | sed -n "${diff}p" | grep -q '^ *> Unstaged\|^  Unstaged' ||
+screen | sed -n "${diff}p" | grep -q '^.. Unstaged' ||
 	fail "the diff pane not at the left edge: $(screen | sed -n "${diff}p")"
 # changed in another shell, side by side again after F5
 git config carve.narrowWidth 60
@@ -88,15 +88,15 @@ TUI_W=44 TUI_H=30 tui_start
 wait_screen "x.yaml"
 # cut in the middle, its first directory and its end
 screen | grep -q 'bindings/net/wireless/' || fail "the end: $(screen)"
-screen | grep -q '^ documentation/~' || fail "the first directory: $(screen)"
-screen | grep -q '^ documentation/devicetree' && fail "the start shown already"
+inner | grep -q '^ documentation/~' || fail "the first directory: $(screen)"
+inner | grep -q '^ documentation/devicetree' && fail "the start shown already"
 # h and l scroll the selected file's rows, x.yaml, the first staged
 keys G g g
-wait_match '^>A   x\.yaml' || fail "G: $(screen | grep x.yaml)"
+wait_inner '^>A   x\.yaml' || fail "G: $(screen | grep x.yaml)"
 keys h
-wait_match '^ documentation/devicetree/' || fail "h: $(screen | grep wireless)"
+wait_inner '^ documentation/devicetree/' || fail "h: $(screen | grep wireless)"
 keys l
-wait_match '^ documentation/~.*bindings/net/wireless/' ||
+wait_inner '^ documentation/~.*bindings/net/wireless/' ||
 	fail "l: $(screen | grep wireless)"
 tui_quit
 exit 0

@@ -40,14 +40,14 @@ step_keys Escape
 keys J J
 wait_screen "Commit ~1"
 _n=4
-until screen | grep -q '^> Files'; do
+until active_title | grep -q '^Files'; do
 	_n=$((_n - 1))
 	[ "$_n" -gt 0 ] || fail "no Files pane: $(screen)"
 	step_keys Tab
 done
 # (past the Unstaged section's row)
 keys j j Tab
-wait_screen "> Unstaged: b.c"
+wait_active "Unstaged: b.c"
 # one -> ONE, both halves
 keys : o1 Enter v j f
 wait_screen "A fixup! commit for which commit?"

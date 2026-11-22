@@ -18,7 +18,7 @@ keys Tab
 wait_screen "x4();"
 keys - - -
 wait_screen "0 context lines"
-wait_screen "> Unstaged: f.c  [-U0]"
+wait_active "Unstaged: f.c  [-U0]"
 wait_gone "x4();"
 # stage the X6 line pair at zero context
 keys / x6 Enter m / X6 Enter m Space

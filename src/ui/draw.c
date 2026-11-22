@@ -34,6 +34,7 @@ attr_t role_attr(int role)
 	case C_TITLE_ACT:
 		return A_REVERSE | A_BOLD;
 	case C_HUNK:
+	case C_FRAME_ACT:
 	case C_SEL:
 	case C_ERR:
 	case C_ID:
@@ -476,18 +477,123 @@ static const char *commit_title(void)
 	return buf;
 }
 
-static void draw_title(int y, int x, int w, const char *label, const char *path,
-		       bool active)
+/* Columns of s, counted in code points, which is enough for these lines. */
+static size_t text_cols(const char *s)
 {
-	char buf[1024];
+	size_t n = 0;
 
-	attron(role_attr(active ? C_TITLE_ACT : C_TITLE) |
-	       (active ? A_BOLD : 0));
-	fill_line(y, x, w);
-	snprintf(buf, sizeof(buf), "%s%s%s%s", active ? "> " : "  ", label,
-		 path ? ": " : "", path ? path : "");
-	puts_at(y, x, w, buf);
-	attroff(role_attr(active ? C_TITLE_ACT : C_TITLE) | A_BOLD);
+	for (; *s; s++)
+		if (((unsigned char)*s & 0xC0) != 0x80)
+			n++;
+	return n;
+}
+
+enum { F_UL, F_UR, F_LL, F_LR, F_H, F_V };
+
+/*
+ * One character of a frame. Heavy lines need a UTF-8 terminal, and
+ * elsewhere the active pane has thin lines in bold like the others.
+ */
+static void frame_ch(int y, int x, int part, bool heavy)
+{
+	static const char thin[] = "++++-|", thick[] = "####=#";
+	const cchar_t *wc;
+
+	if (ui.cfg.ascii_lines) {
+		mvaddch(y, x, (chtype)(heavy ? thick : thin)[part]);
+		return;
+	}
+	heavy = heavy && ui.cfg.utf8;
+	switch (part) {
+	case F_UL:
+		wc = heavy ? WACS_T_ULCORNER : WACS_ULCORNER;
+		break;
+	case F_UR:
+		wc = heavy ? WACS_T_URCORNER : WACS_URCORNER;
+		break;
+	case F_LL:
+		wc = heavy ? WACS_T_LLCORNER : WACS_LLCORNER;
+		break;
+	case F_LR:
+		wc = heavy ? WACS_T_LRCORNER : WACS_LRCORNER;
+		break;
+	case F_H:
+		wc = heavy ? WACS_T_HLINE : WACS_HLINE;
+		break;
+	default:
+		wc = heavy ? WACS_T_VLINE : WACS_VLINE;
+		break;
+	}
+	mvadd_wch(y, x, wc);
+}
+
+/* What a pane is called where Tab is about to go. */
+static const char *pane_name(int pane)
+{
+	switch (pane) {
+	case P_SERIES:
+		return "Series";
+	case P_FILES:
+		return "Files";
+	case P_MESSAGE:
+		return "Message";
+	case P_UNSTAGED:
+		return ui.dp[0].commit ? "Commit" :
+		       ui.lay.one      ? "Diff" :
+					 "Unstaged";
+	default:
+		return ui.lay.one ? "Diff" : "Staged";
+	}
+}
+
+/*
+ * The frame of a pane with its title in the top line. The active pane's
+ * frame is heavy and says where Tab goes next.
+ */
+static void draw_pane_frame(int pane, const char *label, const char *path)
+{
+	const struct box *b = &ui.lay.box[pane];
+	bool active = ui.active == pane;
+	attr_t line = role_attr(active ? C_FRAME_ACT : C_FRAME) |
+		      (active ? A_BOLD : 0);
+	char title[1024], next[64] = "";
+	int i, room, tw, nw = 0, k;
+
+	if (b->h < 2 || b->w < 4)
+		return;
+	attron(line);
+	frame_ch(b->y, b->x, F_UL, active);
+	frame_ch(b->y, b->x + b->w - 1, F_UR, active);
+	frame_ch(b->y + b->h - 1, b->x, F_LL, active);
+	frame_ch(b->y + b->h - 1, b->x + b->w - 1, F_LR, active);
+	for (i = 1; i < b->w - 1; i++) {
+		frame_ch(b->y, b->x + i, F_H, active);
+		frame_ch(b->y + b->h - 1, b->x + i, F_H, active);
+	}
+	for (i = 1; i < b->h - 1; i++) {
+		frame_ch(b->y + i, b->x, F_V, active);
+		frame_ch(b->y + i, b->x + b->w - 1, F_V, active);
+	}
+	k = keymap_first(&ui.keys, ACT_NEXT_PANE);
+	if (active && k >= 0 && pane_after(pane, 1) != pane)
+		snprintf(next, sizeof(next), " %s %s %s ", key_label(k),
+			 ui.cfg.utf8 ? "\xe2\x86\x92" : "->",
+			 pane_name(pane_after(pane, 1)));
+	snprintf(title, sizeof(title), " %s%s%s ", label, path ? ": " : "",
+		 path ? path : "");
+	room = b->w - 4;
+	tw = (int)text_cols(title);
+	if (*next)
+		nw = (int)text_cols(next);
+	/* the title first, and where Tab goes only when both fit */
+	if (tw + nw + 1 > room)
+		nw = 0;
+	if (nw)
+		puts_at(b->y, b->x + b->w - 2 - nw, nw, next);
+	attroff(line);
+	attron(active ? role_attr(C_TITLE_ACT) | A_BOLD : role_attr(C_TITLE));
+	puts_at(b->y, b->x + 2, room - (nw ? nw + 1 : 0), title);
+	attroff(role_attr(C_TITLE_ACT) | role_attr(C_TITLE) | A_BOLD);
 }
 
 /*
@@ -514,7 +620,7 @@ static void draw_message(void)
 		sv_label(ui.cpos, lab, sizeof(lab));
 		snprintf(title, sizeof(title), "Message of %s", lab);
 	}
-	draw_title(y - 1, x, w, title, NULL, ui.active == P_MESSAGE);
+	draw_pane_frame(P_MESSAGE, title, NULL);
 	for (i = 0; i < ui.lay.msg_h; i++)
 		fill_line(y + i, x, w);
 	if (!m->len) {
@@ -540,17 +646,6 @@ static void draw_message(void)
 		attroff(A_DIM | A_BOLD);
 		i++;
 	}
-}
-
-/* Columns of s, counted in code points, which is enough for these lines. */
-static size_t text_cols(const char *s)
-{
-	size_t n = 0;
-
-	for (; *s; s++)
-		if (((unsigned char)*s & 0xC0) != 0x80)
-			n++;
-	return n;
 }
 
 static void status_text(int w, struct strbuf *out)
@@ -648,16 +743,17 @@ static bool split_hint(char *buf, size_t size)
 /* No changes in the work tree. Say what to do instead, from row y on. */
 static void files_hint(int y, int w)
 {
+	int x = ui.lay.list_x + 1;
 	char hint[64];
 
 	if (ui.split.active && ui.split.done) {
-		puts_at(y, 1, w - 1, "Split complete \xe2\x80\x94");
-		puts_keys(y + 1, 1, w - 1, "`{finish}` to finish");
+		puts_at(y, x, w - 1, "Split complete \xe2\x80\x94");
+		puts_keys(y + 1, x, w - 1, "`{finish}` to finish");
 	} else if (split_hint(hint, sizeof(hint))) {
-		puts_at(y, 1, w - 1, "Nothing to stage \xe2\x80\x94");
-		puts_keys(y + 1, 1, w - 1, hint);
+		puts_at(y, x, w - 1, "Nothing to stage \xe2\x80\x94");
+		puts_keys(y + 1, x, w - 1, hint);
 	} else {
-		puts_at(y, 1, w - 1, "Nothing to stage");
+		puts_at(y, x, w - 1, "Nothing to stage");
 	}
 }
 
@@ -688,7 +784,7 @@ static attr_t sec_attr(enum sec sec)
 }
 
 /* The Files title, with the filter's pattern and where the cursor is. */
-static void files_title(int w)
+static void files_title(void)
 {
 	size_t m, nth = 0, total = 0;
 	char t[340], pos[48] = "";
@@ -708,8 +804,7 @@ static void files_title(int w)
 			 *pos ? "  " : "", pos);
 	else
 		snprintf(t, sizeof(t), "%s", pos);
-	draw_title(ui.lay.files_y, 0, w, "Files", *t ? t : NULL,
-		   ui.active == P_FILES);
+	draw_pane_frame(P_FILES, "Files", *t ? t : NULL);
 }
 
 /* The first row shown, which keeps the cursor in view with its rows. */
@@ -746,8 +841,9 @@ static int files_dir_row(int y, size_t k, int w, bool mine)
 	snprintf(d, sizeof(d), "%.*s", (int)ui.items[k].dirlen,
 		 item_path(k + 1 < ui.nitems ? k + 1 : k));
 	attron(A_DIM);
-	fill_line(y, 0, w);
-	need = puts_scrolled(y, 1, w - 1, d, mine ? ui.fhscroll : 0);
+	fill_line(y, ui.lay.list_x, w);
+	need = puts_scrolled(y, ui.lay.list_x + 1, w - 1, d,
+			     mine ? ui.fhscroll : 0);
 	attroff(A_DIM);
 	return need;
 }
@@ -756,9 +852,9 @@ static int files_dir_row(int y, size_t k, int w, bool mine)
 static void files_section_row(int y, size_t k, int w)
 {
 	const struct fitem *it = &ui.items[k];
+	int x, tl, x0 = ui.lay.list_x;
 	size_t n = 0, m;
 	char buf[1024];
-	int x, tl;
 
 	/* the section's files, up to the next section */
 	for (m = k + 1;
@@ -783,13 +879,13 @@ static void files_section_row(int y, size_t k, int w)
 	if (k == ui.fcur)
 		attron(ui.active == P_FILES ? A_REVERSE : A_UNDERLINE);
 	tl = (int)strlen(buf);
-	mvaddch(y, 0, k == ui.fcur ? '>' : line_ch(ACS_HLINE, '-'));
+	mvaddch(y, x0, k == ui.fcur ? '>' : line_ch(ACS_HLINE, '-'));
 	for (x = tl + 3; x < w; x++)
-		mvaddch(y, x, line_ch(ACS_HLINE, '-'));
-	mvaddch(y, 1, ' ');
-	puts_at(y, 2, w - 2, buf);
+		mvaddch(y, x0 + x, line_ch(ACS_HLINE, '-'));
+	mvaddch(y, x0 + 1, ' ');
+	puts_at(y, x0 + 2, w - 2, buf);
 	if (tl + 2 < w)
-		mvaddch(y, tl + 2, ' ');
+		mvaddch(y, x0 + tl + 2, ' ');
 	attroff(A_BOLD | A_REVERSE | A_UNDERLINE | sec_attr(it->sec));
 }
 
@@ -811,12 +907,12 @@ static int files_file_row(int y, size_t k, int w, bool mine)
 			   it->sec == SEC_STAGED ? f->from_x :
 						   f->from_y;
 	/* under its directory's row, indented, the name only */
-	int in = it->dirlen ? 2 : 0, need;
+	int in = it->dirlen ? 2 : 0, need, x0 = ui.lay.list_x;
 	char buf[4], pb[1024];
 
 	if (k == ui.fcur)
 		attron(ui.active == P_FILES ? A_REVERSE : A_UNDERLINE);
-	fill_line(y, 0, w);
+	fill_line(y, x0, w);
 	/* + in a v range of files */
 	buf[0] = k == ui.fcur ? '>' : in_frange(k) ? '+' : ' ';
 	buf[1] = letter;
@@ -824,11 +920,12 @@ static int files_file_row(int y, size_t k, int w, bool mine)
 	buf[3] = '\0';
 	/* the letter in its section's colour, red for conflicts */
 	attron(letter == 'U' ? role_attr(C_DEL) : sec_attr(it->sec));
-	puts_at(y, 0, 3, buf);
+	puts_at(y, x0, 3, buf);
 	attroff(role_attr(C_DEL) | sec_attr(it->sec));
 	snprintf(pb, sizeof(pb), "%s%s%s", from ? from : "", from ? " -> " : "",
 		 item_path(k) + it->dirlen);
-	need = puts_scrolled(y, 3 + in, w - 3 - in, pb, mine ? ui.fhscroll : 0);
+	need = puts_scrolled(y, x0 + 3 + in, w - 3 - in, pb,
+			     mine ? ui.fhscroll : 0);
 	attroff(A_REVERSE | A_UNDERLINE);
 	return need;
 }
@@ -840,10 +937,12 @@ static void draw_files(void)
 	size_t k, dir = (size_t)-1;
 	int i;
 
-	files_title(w);
+	files_title();
 	if (!ui.nitems && ui.filter) {
-		puts_at(y0 + 1, 1, w - 1, "No file matches the filter");
-		puts_keys(y0 + 2, 1, w - 1, "(`{clear}` clears it)");
+		puts_at(y0 + 1, ui.lay.list_x + 1, w - 1,
+			"No file matches the filter");
+		puts_keys(y0 + 2, ui.lay.list_x + 1, w - 1,
+			  "(`{clear}` clears it)");
 		return;
 	}
 	if (!ui.nitems) {
@@ -1057,7 +1156,8 @@ static int series_want(void)
 
 	if (!series_mode() || ui.series_hidden)
 		return 0;
-	want = (int)series_len() + 1;
+	/* the top and bottom lines of the frame */
+	want = (int)series_len() + 2;
 	/* the upstream divider, "..." for more */
 	want += ui.sv.bounded && ui.sv.inrange < ui.sv.n;
 	want += !ui.sv.end;
@@ -1087,7 +1187,7 @@ static void layout_stacked(int body)
 	 * the lists get what they hold, up to half, and the diffs at least
 	 * six
 	 */
-	list = want + 1 + (int)(ui.nitems ? ui.nitems : 2);
+	list = want + 2 + (int)(ui.nitems ? ui.nitems : 2);
 	if (list > rows / 2)
 		list = rows / 2;
 	if (list < 3)
@@ -1101,10 +1201,10 @@ static void layout_stacked(int body)
 	 * files
 	 */
 	ui.lay.series_h = want < list / 3 ? want : list / 3;
-	if (want && ui.lay.series_h < 2 && list >= 6)
-		ui.lay.series_h = 2;
+	if (want && ui.lay.series_h < 3 && list >= 7)
+		ui.lay.series_h = 3;
 	if (want && ui.lay.want_series_h)
-		ui.lay.series_h = clamp(ui.lay.want_series_h, 2, list - 3);
+		ui.lay.series_h = clamp(ui.lay.want_series_h, 3, list - 3);
 	ui.lay.files_y = 1 + ui.lay.series_h;
 	ui.lay.files_h = list - 1 - ui.lay.series_h;
 	d = rows - list;
@@ -1134,11 +1234,12 @@ static void diff_area(void)
 		const struct strbuf *m = pane_message();
 
 		lines = (int)count_lines(sb_str(m), m->len);
-		ui.lay.msg_h = lines < 3 ? 3 : lines > 8 ? 8 : lines;
+		/* and the bottom line of its frame */
+		ui.lay.msg_h = (lines < 3 ? 3 : lines > 8 ? 8 : lines) + 1;
 		/* the diff keeps six rows at least */
 		if (rows - ui.lay.msg_h - 1 < 7)
 			ui.lay.msg_h = rows - 8;
-		if (ui.lay.msg_h < 2)
+		if (ui.lay.msg_h < 3)
 			ui.lay.msg_h = 0;
 	}
 	ui.lay.msg_y = top + 1;
@@ -1148,8 +1249,8 @@ static void diff_area(void)
 	if (!ui.lay.one) {
 		int h0 = ui.dp[0].h * (rows - 2) / (ui.dp[0].h + ui.dp[1].h);
 
-		if (h0 < 1)
-			h0 = 1;
+		if (h0 < 2)
+			h0 = 2;
 		ui.dp[0].y = top + 1;
 		ui.dp[0].h = h0;
 		ui.dp[1].y = top + 2 + h0;
@@ -1162,7 +1263,7 @@ static void diff_area(void)
 	ui.dp[!k].h = 0;
 }
 
-static void layout(void)
+static void layout_panes(void)
 {
 	int body = LINES - 4; /* title row, pane titles, status, msg */
 	int rw, top_h, want;
@@ -1196,10 +1297,10 @@ static void layout(void)
 	/* the title and rows of the Series pane above the Files pane */
 	want = series_want();
 	ui.lay.series_h = want < body / 3 ? want : body / 3;
-	if (want && ui.lay.series_h < 2)
-		ui.lay.series_h = body >= 8 ? 2 : 0;
+	if (want && ui.lay.series_h < 3)
+		ui.lay.series_h = body >= 9 ? 3 : 0;
 	if (want && ui.lay.series_h && ui.lay.want_series_h)
-		ui.lay.series_h = clamp(ui.lay.want_series_h, 2, body - 3);
+		ui.lay.series_h = clamp(ui.lay.want_series_h, 3, body - 3);
 	ui.lay.files_y = 1 + ui.lay.series_h;
 	ui.lay.files_h = body - ui.lay.series_h;
 	rw = COLS - ui.lay.files_w - 1;
@@ -1243,6 +1344,55 @@ zoom:
 		ui.lay.files_y = 1;
 		ui.lay.files_h = body;
 	}
+}
+
+/*
+ * Each pane's title line becomes the top of its frame and its last row
+ * the bottom. Side by side the left frames take the column between the
+ * lists and the diffs.
+ */
+static void frame_panes(void)
+{
+	struct ui_layout *l = &ui.lay;
+	int lw = l->files_w + (!l->zoom && !l->stacked), k;
+
+	memset(l->box, 0, sizeof(l->box));
+	if (l->series_h < 3)
+		l->series_h = 0;
+	if (l->series_h) {
+		l->box[P_SERIES] = (struct box){ 1, 0, l->series_h, lw };
+		l->series_h--;
+	}
+	if (l->files_h > 0) {
+		l->box[P_FILES] =
+			(struct box){ l->files_y, 0, l->files_h + 1, lw };
+		l->files_h--;
+	}
+	l->list_x = 1;
+	l->files_w = lw - 2;
+	if (l->msg_h > 0) {
+		l->box[P_MESSAGE] = (struct box){ l->msg_y - 1, ui.dp[0].x,
+						  l->msg_h + 1, ui.dp[0].w };
+		l->msg_h--;
+	}
+	for (k = 0; k < 2; k++) {
+		struct dpane *dp = &ui.dp[k];
+
+		if (dp->h > 0) {
+			l->box[P_UNSTAGED + k] = (struct box){ dp->y - 1, dp->x,
+							       dp->h + 1,
+							       dp->w };
+			dp->h--;
+		}
+		dp->x++;
+		dp->w -= 2;
+	}
+}
+
+static void layout(void)
+{
+	layout_panes();
+	frame_panes();
 }
 
 bool too_small(void)
@@ -1333,10 +1483,6 @@ void draw(void)
 	attroff(A_DIM);
 	attroff(role_attr(C_TITLE) | A_BOLD);
 
-	/* side by side, the line between the lists and the diffs */
-	if (!ui.lay.zoom && !ui.lay.stacked)
-		for (i = 1; i < LINES - 2; i++)
-			mvaddch(i, ui.lay.files_w, line_ch(ACS_VLINE, '|'));
 	if (ui.lay.files_h > 0)
 		draw_files();
 	draw_series();
@@ -1381,19 +1527,17 @@ void draw(void)
 			draw_message();
 		/* zoomed, only the active pane has any rows */
 		if (ui.dp[0].h > 0) {
-			draw_title(ui.dp[0].y - 1, ui.dp[0].x, ui.dp[0].w,
-				   ui.dp[0].commit ? commit_title() :
-				   ui.lay.one	   ? "Diff (unstaged)" :
-						     "Unstaged",
-				   ui.path ? pth[0] : NULL,
-				   ui.active == P_UNSTAGED);
+			draw_pane_frame(P_UNSTAGED,
+					ui.dp[0].commit ? commit_title() :
+					ui.lay.one	? "Diff (unstaged)" :
+							  "Unstaged",
+					ui.path ? pth[0] : NULL);
 			draw_diff(&ui.dp[0], ui.active == P_UNSTAGED);
 		}
 		if (ui.dp[1].h > 0) {
-			draw_title(ui.dp[1].y - 1, ui.dp[1].x, ui.dp[1].w,
-				   ui.lay.one ? "Diff (staged)" : "Staged",
-				   ui.path ? pth[1] : NULL,
-				   ui.active == P_STAGED);
+			draw_pane_frame(P_STAGED,
+					ui.lay.one ? "Diff (staged)" : "Staged",
+					ui.path ? pth[1] : NULL);
 			draw_diff(&ui.dp[1], ui.active == P_STAGED);
 		}
 	}
@@ -1627,15 +1771,18 @@ static const short colors8[][2] = {
 	[C_STATUS] = { COLOR_BLACK, COLOR_WHITE },
 	[C_WS] = { COLOR_WHITE, COLOR_RED },
 	[C_ID] = { COLOR_YELLOW, -1 },
+	[C_FRAME] = { -1, -1 },
+	[C_FRAME_ACT] = { COLOR_CYAN, -1 },
 };
 
 static const short colors256[][2] = {
-	[C_ADD] = { 114, -1 },	   [C_DEL] = { 174, -1 },
-	[C_HUNK] = { 110, -1 },	   [C_SEL] = { 235, 222 },
-	[C_TITLE] = { 252, 238 },  [C_TITLE_ACT] = { 235, 110 },
-	[C_ERR] = { 203, -1 },	   [C_DIM] = { 247, -1 },
-	[C_STATUS] = { 252, 237 }, [C_WS] = { 255, 131 },
-	[C_ID] = { 179, -1 },
+	[C_ADD] = { 114, -1 },	     [C_DEL] = { 174, -1 },
+	[C_HUNK] = { 110, -1 },	     [C_SEL] = { 235, 222 },
+	[C_TITLE] = { 252, 238 },    [C_TITLE_ACT] = { 235, 110 },
+	[C_ERR] = { 203, -1 },	     [C_DIM] = { 247, -1 },
+	[C_STATUS] = { 252, 237 },   [C_WS] = { 255, 131 },
+	[C_ID] = { 179, -1 },	     [C_FRAME] = { 240, -1 },
+	[C_FRAME_ACT] = { 110, -1 },
 };
 
 void init_colors(void)
@@ -1654,7 +1801,7 @@ void init_colors(void)
 		own_bg = false;
 	if (ui.cfg.colors256 && COLORS >= 256)
 		set = colors256;
-	for (i = C_ADD; i <= C_ID; i++) {
+	for (i = C_ADD; i <= C_FRAME_ACT; i++) {
 		short bg = set[i][1];
 
 		if (bg < 0 && !own_bg)
@@ -1739,6 +1886,7 @@ static int draw_branches(int y, int x, int w, const char *refs)
 static void draw_browse_series(int y0, int h, int w)
 {
 	const struct sview *s = &ui.sv;
+	int x0 = ui.lay.list_x;
 	size_t n = sv_rows(), off = s->own ? 1 : 0, k;
 	/* the divider goes above the first row past the range */
 	size_t div = s->bounded && s->inrange < s->n ? s->inrange + off :
@@ -1768,8 +1916,8 @@ static void draw_browse_series(int y0, int h, int w)
 			snprintf(d, sizeof(d), "-- %s --",
 				 s->base_name ? s->base_name : "upstream");
 			attron(A_DIM);
-			fill_line(y0 + i, 0, w);
-			puts_at(y0 + i, 1, w - 1, d);
+			fill_line(y0 + i, x0, w);
+			puts_at(y0 + i, x0 + 1, w - 1, d);
 			attroff(A_DIM);
 			i++;
 		}
@@ -1785,10 +1933,10 @@ static void draw_browse_series(int y0, int h, int w)
 			attron((ui.active == P_SERIES ? A_REVERSE :
 							A_UNDERLINE) |
 			       A_BOLD);
-		fill_line(y0 + i, 0, w);
+		fill_line(y0 + i, x0, w);
 		if (s->own && !k) {
 			snprintf(buf, sizeof(buf), "%c  work tree", mark);
-			puts_at(y0 + i, 0, w, buf);
+			puts_at(y0 + i, x0, w, buf);
 		} else {
 			int need;
 
@@ -1800,16 +1948,17 @@ static void draw_browse_series(int y0, int h, int w)
 			sv_label(k - off, l, sizeof(l));
 			snprintf(buf, sizeof(buf), "%c%c%-5s ", mark,
 				 s->merge[k - off] ? 'M' : ' ', l);
-			puts_at(y0 + i, 0, w, buf);
+			puts_at(y0 + i, x0, w, buf);
 			/* the branches at it after the id, as git log shows them */
 			if (s->refs[k - off] &&
 			    !(k == ui.scur && ui.shscroll)) {
-				x += put_text(y0 + i, x, w - x, line, idlen);
-				x += draw_branches(y0 + i, x, w - x,
+				x += put_text(y0 + i, x0 + x, w - x, line,
+					      idlen);
+				x += draw_branches(y0 + i, x0 + x, w - x,
 						   s->refs[k - off]);
 				line += idlen;
 			}
-			need = puts_window(y0 + i, x, w - x, line,
+			need = puts_window(y0 + i, x0 + x, w - x, line,
 					   k == ui.scur ? ui.shscroll : 0);
 			if (k == ui.scur)
 				smax = need;
@@ -1832,8 +1981,8 @@ static void draw_browse_series(int y0, int h, int w)
 		else
 			snprintf(d, sizeof(d), "...");
 		attron(A_DIM);
-		fill_line(y0 + i, 0, w);
-		puts_at(y0 + i, 1, w - 1, d);
+		fill_line(y0 + i, x0, w);
+		puts_at(y0 + i, x0 + 1, w - 1, d);
 		attroff(A_DIM);
 	}
 }
@@ -1844,6 +1993,6 @@ static void draw_series(void)
 
 	if (!ui.lay.series_h)
 		return;
-	draw_title(1, 0, w, "Series", shown_label(), ui.active == P_SERIES);
+	draw_pane_frame(P_SERIES, "Series", shown_label());
 	draw_browse_series(y0, h, w);
 }

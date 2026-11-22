@@ -21,7 +21,9 @@ row_sgr "-return" | grep -q "foo($esc\[[0-9;]*7[0-9;]*mbar" ||
 	fail "- side"
 row_sgr "completely other" | grep -q "$esc\[[0-9;]*7[0-9;]*m" &&
 	fail "unrelated pair marked"
-row_sgr "+added" | grep -q "$esc\[[0-9;]*7[0-9;]*m" && fail "unpaired marked"
+# (the Files cursor in reverse video may share the row)
+row_sgr "added" | grep -q "$esc\[[0-9;]*7[0-9;]*m[^$esc]*added" &&
+	fail "unpaired marked"
 tui_quit
 
 TUI_TERM=vt100 tui_start

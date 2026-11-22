@@ -13,7 +13,7 @@ before="$(file_hash f.c) $(file_hash new.c)"
 
 tui_start
 keys Tab
-wait_screen "> Unstaged: f.c"
+wait_active "Unstaged: f.c"
 
 # Space on +B (new line 2) stages only that line
 keys : 2 Enter Space
@@ -23,7 +23,7 @@ screen | grep -q 'Staged (1)' || fail "Staged section"
 
 # a range from -b (old 2) with v down to +E stages -b, -e and +E
 step_keys : o 2 Enter v j j j j j
-[ "$(screen | cut -c33- | grep -c '^\*')" -ge 3 ] || fail "range markers"
+[ "$(screen | cut -c34- | grep -c '^\*')" -ge 3 ] || fail "range markers"
 keys Space
 wait_index f.c 'a\nB\nc\nd\nE\nf\n'
 
@@ -34,7 +34,7 @@ wait_screen "(no unstaged changes)"
 
 # in the Staged pane Space unstages, and a hunk header unstages the hunk
 keys Tab
-wait_screen "> Staged: f.c"
+wait_active "Staged: f.c"
 keys : 7 Enter Space
 wait_index f.c 'a\nB\nc\nd\nE\nf\n'
 keys g g Space
@@ -42,7 +42,7 @@ wait_index f.c 'a\nb\nc\nd\ne\nf\n'
 
 # Enter on a file in the Files pane stages it whole
 keys Tab Tab
-wait_screen "> Files"
+wait_active "Files"
 keys g g Enter
 wait_index f.c 'a\nB\nc\nd\nE\nf\ng\n'
 wait_screen "Staged (1)"

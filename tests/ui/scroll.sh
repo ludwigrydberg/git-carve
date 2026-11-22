@@ -24,10 +24,10 @@ wait_screen "M big.c"
 keys j
 wait_screen "Unstaged: long.c"
 keys Tab
-wait_screen "> Unstaged: long.c"
+wait_active "Unstaged: long.c"
 wait_screen "+start-01-"
 screen | grep -q 'END' && fail "the end of the long line is visible"
-screen | grep -q -- '-[0-9]*>$' || fail "no mark on the right: $(screen | grep start)"
+screen | grep -q -- '-[0-9]*>x$' || fail "no mark on the right: $(screen | grep start)"
 keys l
 wait_gone "+start-01-"
 screen | grep -q ' 2<+-' || fail "no scroll marker: $(screen | grep ' 2')"
@@ -40,7 +40,7 @@ screen | grep -q ' 2<+' && fail "marker left at the left edge"
 
 # over the limit, a note, and Space stages the whole file
 keys '{'
-wait_screen "> Unstaged: big.c"
+wait_active "Unstaged: big.c"
 wait_screen "(diff of more than 50 lines, over carve.diffLimit; Space takes"
 keys Space
 wait_index big.c "$(cat big.c)\n"

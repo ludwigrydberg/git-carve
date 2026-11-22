@@ -46,7 +46,7 @@ for title in "git-carve" "Series: ~1 below HEAD"; do
 		fail "$title has a background"
 done
 keys BTab
-wait_screen "> Series: ~1 below HEAD"
-row_sgr "> Series:" | grep -q "$esc\[[0-9;]*46m" ||
+wait_active "Series: ~1 below HEAD"
+row_sgr "Series: ~1" | grep -q "$esc\[[0-9;]*46m" ||
 	fail "active Series title has no cyan background"
 tui_quit

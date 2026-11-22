@@ -21,7 +21,7 @@ keys J
 wait_screen 'Commit ~1'
 wait_screen '+l 10 timeout 100'
 keys Tab
-wait_screen '> Commit ~1: a.c'
+wait_active 'Commit ~1: a.c'
 # on the commit's line the work tree changes, the commit not yet
 keys / 'timeout 100' Enter : 's/100/500/' Enter
 wait_screen "replaced in 1 line of a.c (u undoes it)"
@@ -48,7 +48,7 @@ keys C-l
 wait_screen 'Unstaged (1)'
 # the work tree's a.c is the last entry of the Files pane
 keys G Tab
-wait_screen '> Unstaged: a.c'
+wait_active 'Unstaged: a.c'
 keys / 'l 3 x' Enter m
 keys / 'l 7 x' Enter m
 keys : 's/x$/y/' Enter

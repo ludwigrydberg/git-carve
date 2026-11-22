@@ -13,7 +13,7 @@ printf 'keep\nnew A\nnew B\nkeep 2\n' >f.c
 tui_start
 wait_screen "M f.c"
 keys Tab
-wait_screen "> Unstaged: f.c"
+wait_active "Unstaged: f.c"
 keys ')'
 wait_cursor '-old a$' || fail "start: $(cursor_row)"
 keys Space

@@ -23,24 +23,24 @@ keys j j
 wait_screen "Unstaged: a.c"
 keys Tab / needle Enter
 wait_screen "5 matches in unstaged changes"
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 cursor_row | grep -q '+needle a$' || fail "a: $(cursor_row)"
 keys n
-wait_screen "> Unstaged: b.c"
+wait_active "Unstaged: b.c"
 cursor_row | grep -q '+Needle b$' || fail "smart case: $(cursor_row)"
 keys n
-wait_screen "> Unstaged: c.c"
+wait_active "Unstaged: c.c"
 keys n
-wait_screen "> Unstaged: d.c"
+wait_active "Unstaged: d.c"
 cursor_row | grep -q '+needle d1$' || fail "d1: $(cursor_row)"
 keys n
 cursor_row | grep -q '+needle d2$' || fail "d2: $(cursor_row)"
 keys n
 wait_screen "search wrapped to the top"
-wait_screen "> Unstaged: a.c"
+wait_active "Unstaged: a.c"
 keys N
 wait_screen "search wrapped to the bottom"
-wait_screen "> Unstaged: d.c"
+wait_active "Unstaged: d.c"
 keys N
 wait_cursor '+needle d1$'
 cursor_row | grep -q '+needle d1$' || fail "N: $(cursor_row)"
@@ -48,7 +48,7 @@ cursor_row | grep -q '+needle d1$' || fail "N: $(cursor_row)"
 # with an upper case letter the case is exact
 keys / Needle Enter
 wait_screen "1 match in unstaged changes"
-wait_screen "> Unstaged: b.c"
+wait_active "Unstaged: b.c"
 
 # Ctrl-F shows the list, choose d.c's second hit
 keys / needle Enter g /
@@ -68,11 +68,11 @@ sgr_row "+needle d2" | grep -q "$esc\[[0-9;]*36md\.c:n4: " ||
 sgr_row "+needle d2" | grep -q "$esc\[[0-9;]*32m+needle d2" || fail "text"
 keys G Enter
 wait_gone "5 matches for"
-wait_screen "> Unstaged: d.c"
+wait_active "Unstaged: d.c"
 cursor_row | grep -q '+needle d2$' || fail "Ctrl-F: $(cursor_row)"
 
 # the Staged pane searches the staged diffs (c.c's "two x")
 keys Tab / "two x" Enter
 wait_screen "1 match in staged changes"
-wait_screen "> Staged: c.c"
+wait_active "Staged: c.c"
 tui_quit

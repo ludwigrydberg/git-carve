@@ -139,7 +139,7 @@ measure() {
 	wait_screen ">M a.c"
 	count startup
 	step_keys Tab
-	wait_screen "> Unstaged: a.c"
+	wait_active "Unstaged: a.c"
 	# the first stage reads the undo history, then comes the steady
 	# state
 	tui first a Space; staged 1
@@ -157,11 +157,11 @@ measure() {
 	count typing
 	staged 6
 	step_keys Tab
-	wait_screen "> Staged: a.c"
+	wait_active "Staged: a.c"
 	tui space_unstage a Space; staged 5
 	tui undo u; staged 6
 	step_keys BTab BTab
-	wait_screen "> Files"
+	wait_active "Files"
 	# a.c in the Unstaged section, below its Staged entry (the first)
 	# and the section's row, and Enter stages it all
 	step_keys g g j j

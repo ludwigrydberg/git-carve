@@ -35,7 +35,7 @@ wait_screen 'Commit ~1: a.c'
 wait_screen '+l 10 P1'
 # } and { go through the commit's files
 keys Tab
-wait_screen '> Commit ~1: a.c'
+wait_active 'Commit ~1: a.c'
 keys '}'
 wait_screen 'Commit ~1: b.c'
 wait_screen '+b 3 P1'
@@ -53,7 +53,7 @@ wait_gone '2 matches for'
 # e on a file of the commit in the Files pane opens the work-tree file
 wait_screen 'Commit ~1: a.c'
 keys BTab
-wait_screen '> Files'
+wait_active 'Files'
 keys e
 # the editor starts once e is handled, wait for it rather than a fixed time
 n=0

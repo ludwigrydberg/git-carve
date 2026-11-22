@@ -26,7 +26,7 @@ wait_screen "Untracked (2) [+]"
 keys /
 wait_screen "filter files:"
 keys i c e
-wait_screen "> Files: /ice"
+wait_active "Files: /ice"
 wait_gone "README"
 wait_gone "core.c"
 screen | grep -q 'e1000\.c' && fail "e1000.c passes /ice"
@@ -39,12 +39,12 @@ wait_screen "2 files match /ice"
 wait_screen "Unstaged: drivers/net/ice.c"
 # with an upper case letter, case matters
 keys / I
-wait_screen "> Files: /I"
+wait_active "Files: /I"
 wait_gone "  ice.c"
 wait_screen "Ice_new.c"
 # Esc in the prompt brings back the filter before (/ice)
 keys Escape
-wait_screen "> Files: /ice"
+wait_active "Files: /ice"
 wait_screen "  ice.c"
 # Esc in the pane clears it, and the Untracked section is folded again
 keys Escape

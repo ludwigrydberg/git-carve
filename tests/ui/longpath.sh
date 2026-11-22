@@ -21,38 +21,38 @@ printf 'b\n' >short.c
 
 TUI_W=100 TUI_H=24 tui_start
 wait_screen "M short.c"
-screen | grep -q '^ drivers/~.*intel/e1000e/' ||
+inner | grep -q '^ drivers/~.*intel/e1000e/' ||
 	fail "middle cut: $(screen | grep e1000e)"
-screen | grep -q '^[ >]M   80003es2lan\.c' ||
+inner | grep -q '^[ >]M   80003es2lan\.c' ||
 	fail "the name: $(screen | grep 80003)"
 # h scrolls the selected file and its directory's row only, as far as its
 # own text goes, and the other rows keep their end. More h changes nothing,
 # l goes back, and another file selected starts unscrolled.
 step_keys h h
-screen | grep -q '^ drivers/net' && fail "h on short.c moved a row: $(screen)"
+inner | grep -q '^ drivers/net' && fail "h on short.c moved a row: $(screen)"
 keys j
-wait_match '^>M   80003es2lan\.c' || fail "j: $(screen | grep 80003)"
+wait_inner '^>M   80003es2lan\.c' || fail "j: $(screen | grep 80003)"
 keys h h h h
-wait_match '^ drivers/net/ethernet' || fail "h: $(screen | grep e1000e)"
-screen | grep -q '^ drivers/net/ethernet.*>' ||
+wait_inner '^ drivers/net/ethernet' || fail "h: $(screen | grep e1000e)"
+inner | grep -q '^ drivers/net/ethernet.*>' ||
 	fail "no right mark: $(screen | grep ethernet)"
-screen | grep -q '^ drivers/~.*iwlwifi/mvm/' ||
+inner | grep -q '^ drivers/~.*iwlwifi/mvm/' ||
 	fail "a row not selected moved: $(screen | grep mvm)"
-screen | grep -q '^ M short\.c' ||
+inner | grep -q '^ M short\.c' ||
 	fail "a short path moved: $(screen | grep short)"
 step_keys h
-screen | grep -q '^ drivers/net/ethernet' || fail "scrolled past the start"
+inner | grep -q '^ drivers/net/ethernet' || fail "scrolled past the start"
 keys l l l l l
-wait_match '^ drivers/~.*intel/e1000e/' || fail "l: $(screen | grep e1000e)"
+wait_inner '^ drivers/~.*intel/e1000e/' || fail "l: $(screen | grep e1000e)"
 keys h h
-wait_match '^ drivers/net/ethernet' || fail "h again: $(screen | grep e1000e)"
+wait_inner '^ drivers/net/ethernet' || fail "h again: $(screen | grep e1000e)"
 keys j
-wait_match '^ drivers/~.*intel/e1000e/' || fail "another file, still scrolled: $(screen | grep e1000e)"
+wait_inner '^ drivers/~.*intel/e1000e/' || fail "another file, still scrolled: $(screen | grep e1000e)"
 tui_quit
 
 ell=$(printf '\342\200\246')
 TUI_LOCALE=C.UTF-8 TUI_W=100 TUI_H=24 tui_start
 wait_screen "M short.c"
-screen | grep -q "^ drivers/$ell.*intel/e1000e/" ||
+inner | grep -q "^ drivers/$ell.*intel/e1000e/" ||
 	fail "UTF-8 ellipsis: $(screen | grep e1000e)"
 tui_quit

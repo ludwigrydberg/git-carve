@@ -18,7 +18,7 @@ wait_screen "M f.c"
 wait_screen "Tab: pane  y: stage/unstage"
 wait_screen "Ctrl-Q: quit"
 keys F2
-wait_screen "> Unstaged: f.c"
+wait_active "Unstaged: f.c"
 step_keys : n2 Enter Space
 assert_index_text f.c 'a\nb\nc\n'
 keys y
@@ -53,5 +53,5 @@ tui_start
 wait_screen "unknown action 'nosuch'"
 close_box
 keys Tab
-wait_screen "> Unstaged: f.c"
+wait_active "Unstaged: f.c"
 tui_quit

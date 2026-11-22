@@ -45,7 +45,7 @@ wait_screen 'fixup! commit for "drv: add b" made'
 
 # t from the Files pane takes the whole change of c.c, the only file left
 _n=4
-until screen | grep -q '^> Files'; do
+until active_title | grep -q '^Files'; do
 	_n=$((_n - 1))
 	[ "$_n" -gt 0 ] || fail "no Files pane: $(screen)"
 	step_keys Tab

@@ -42,10 +42,10 @@ wait_args() {
 
 tui_start
 keys Tab
-wait_screen "> Unstaged: drv.c"
+wait_active "Unstaged: drv.c"
 keys : 3 Enter e
 wait_args e
-wait_screen "> Unstaged: drv.c"
+wait_active "Unstaged: drv.c"
 [ -z "$(git diff --cached --name-only)" ] || fail "e staged something"
 tui_quit
 
@@ -54,7 +54,7 @@ git add drv.c
 rm -f "$tmp/args"
 tui_start
 keys Tab Tab
-wait_screen "> Staged: drv.c"
+wait_active "Staged: drv.c"
 keys : 3 Enter e
 wait_args e
 tui_quit
@@ -79,7 +79,7 @@ wait_screen "drv.c is not in the work tree"
 # in the Series pane e gives the commit under the cursor a new message,
 # as r does, and on the work tree row it writes the next commit's
 keys BTab BTab
-wait_screen "> Series"
+wait_active "Series"
 keys j e
 n=0
 while [ "$n" -lt "$WAIT_TRIES" ] && [ ! -s "$tmp/args" ]; do

@@ -77,7 +77,8 @@ With `$HOME/.local/bin` in your `PATH`, `git carve` works, and
 ## Quick start
 
 Run `git carve` in a repository with unstaged changes. Select a file in
-**Files** and use `Tab` to reach the diff. Put the cursor on a changed
+**Files** and use `Tab` to reach the diff. The active pane has a heavy
+frame, and its top line names the pane `Tab` goes to next. Put the cursor on a changed
 line and press `Space` to stage it. For a replacement, press `gm` to
 mark both the old and new lines before pressing `Space`. The status bar
 shows the shortcut when the diff cursor is on a paired line. Select the
@@ -175,7 +176,7 @@ Set these with `git config [--global] carve.<name> <value>`.
 | `carve.seriesPane` | `true` | set to `false` to start with the Series pane hidden |
 | `carve.seriesStep` | `5` | how many older commits the Series pane loads at a time |
 | `carve.tabWidth` | `8` | tab width |
-| `carve.asciiLines` | `false` | plain ASCII borders, for a broken locale over ssh |
+| `carve.asciiLines` | `false` | plain ASCII frames, for a broken locale over ssh |
 | `carve.colors` | `8` | `256` uses a fixed palette for dark terminal backgrounds |
 | `carve.escDelay` | `100` | how many ms Esc waits for the rest of a key, more for a slow link |
 | `carve.diffLimit` | `100000` | the most lines a diff pane loads (`0` for no limit) |

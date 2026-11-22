@@ -26,6 +26,23 @@ screen() {
 	tmux -L "$TMUX_SOCK" capture-pane -p -t t
 }
 
+# inner: the screen without its first column, the left line of the frames
+# when the panes are stacked or zoomed, or of the lists side by side
+inner() {
+	screen | cut -c2-
+}
+
+# wait_inner <regex> is wait_match on inner.
+wait_inner() {
+	_n=$WAIT_TRIES
+	while [ "$_n" -gt 0 ]; do
+		inner | grep -q -- "$1" && return 0
+		sleep 0.1
+		_n=$((_n - 1))
+	done
+	return 1
+}
+
 # row_sgr <text>: the screen rows with text, with their colour codes
 row_sgr() {
 	tmux -L "$TMUX_SOCK" capture-pane -e -p -t t | grep -F -- "$1"
@@ -132,11 +149,11 @@ tui_quit() {
 	fail "TUI did not exit"
 }
 
-# Diff pane rows, right of the Files pane, that carry the cursor marker. $1
-# is 1 for the Unstaged pane and 2 for the Staged pane.
+# Diff pane rows, inside the frames right of the Files pane, that carry
+# the cursor marker. $1 is 1 for the Unstaged pane and 2 for the Staged
+# pane.
 cursor_row() {
-	screen | cut -c32- | grep '^>' | grep -v '^> \(Unstaged\|Staged\|Commit\)' |
-		sed -n "${1:-1}p"
+	screen | cut -c33- | grep '^>' | sed -n "${1:-1}p" | sed 's/.$//; s/ *$//'
 }
 
 # tui_start runs the TUI with GIT_CARVE_IDLE=$tmp/idle. It writes "idle" to
@@ -185,12 +202,12 @@ step_keys() {
 	idle_after "$_ic"
 }
 
-# wait_fcur <regex> waits until the Files pane's cursor row (the left 31
-# columns) matches, and fails the test if it never does.
+# wait_fcur <regex> waits until the Files pane's cursor row (inside its
+# frame, the columns 2 to 30) matches, and fails the test if it never does.
 wait_fcur() {
 	_n=$WAIT_TRIES
 	while [ "$_n" -gt 0 ]; do
-		screen | cut -c1-31 | grep '^>' | grep -q -- "$1" && return 0
+		screen | cut -c2-30 | grep '^>' | grep -q -- "$1" && return 0
 		sleep 0.1
 		_n=$((_n - 1))
 	done
@@ -221,4 +238,57 @@ tui_resize() {
 # The row (1-based) of the screen that contains text, or empty.
 screen_row() {
 	screen | grep -n -F -- "$1" | head -n 1 | cut -d: -f1
+}
+
+# active_title: the title of the active pane, as the top line of its frame
+# shows it ("Files: 1/3"). It is the one title in bold on a background.
+active_title() {
+	tmux -L "$TMUX_SOCK" capture-pane -e -p -t t | awk '
+	{
+		line = $0; bold = 0; bg = 0; title = ""; n = length(line)
+		for (i = 1; i <= n; i++) {
+			c = substr(line, i, 1)
+			if (c == "\033") {
+				j = index(substr(line, i), "m")
+				split(substr(line, i + 2, j - 3), p, ";")
+				for (k = 1; k in p; k++) {
+					v = p[k] + 0
+					if (v == 0) { bold = 0; bg = 0 }
+					else if (v == 1) bold = 1
+					else if (v == 22) bold = 0
+					else if (v == 7 || (v >= 40 && v <= 47) ||
+						 v == 48) bg = 1
+					else if (v == 27 || v == 49) bg = 0
+					if (v == 38 || v == 48) k += 2
+				}
+				delete p
+				i += j - 1
+				continue
+			}
+			if (c == "\016" || c == "\017")
+				continue
+			if (bold && bg)
+				title = title c
+			else if (title != "")
+				break
+		}
+		sub(/^ +/, "", title)
+		sub(/ +$/, "", title)
+		if (title != "") {
+			print title
+			exit
+		}
+	}'
+}
+
+# wait_active <fixed text>: wait until the active pane's title has text
+wait_active() {
+	_n=$WAIT_TRIES
+	while [ "$_n" -gt 0 ]; do
+		active_title | grep -F -q -- "$1" && return 0
+		sleep 0.1
+		_n=$((_n - 1))
+	done
+	screen >&2
+	fail "active pane not '$1' (it is '$(active_title)')"
 }

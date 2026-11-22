@@ -41,17 +41,17 @@ wait_screen "+l 25 unstaged"
 # Tab goes through Files, Message, Diff, then the Series pane and Files
 # again
 keys Tab
-wait_screen "> Message"
+wait_active "Message"
 keys Tab
-wait_screen "> Diff (unstaged): a.c"
+wait_active "Diff (unstaged): a.c"
 keys Tab
-wait_screen "> Series"
+wait_active "Series"
 keys Tab
-wait_screen "> Files"
+wait_active "Files"
 
 # e in the Message pane, left as it was, gives no message
 keys Tab
-wait_screen "> Message"
+wait_active "Message"
 keys e
 wait_screen "no message written"
 [ -f .git/CARVE_MESSAGE ] && fail "an untouched template kept"
@@ -92,7 +92,7 @@ tui_quit
 TUI_W=80 TUI_H=30 tui_start
 wait_screen "No message yet."
 keys Tab
-wait_screen "> Message"
+wait_active "Message"
 tui_quit
 
 # carve.layout = two shows both diffs

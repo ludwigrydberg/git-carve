@@ -21,23 +21,23 @@ wait_screen '+l 25 unstaged'
 # the Files pane alone first, then the upper diff
 keys o
 wait_gone 'Unstaged: a.c'
-wait_screen '> Files'
+wait_active 'Files'
 keys o
 wait_screen 'Unstaged: a.c'
 keys Tab o
-wait_screen '> Unstaged: a.c  [zoom]'
+wait_active 'Unstaged: a.c  [zoom]'
 screen | grep -q 'Files' && fail "Files pane still there: $(screen)"
-screen | grep -q '^>  *22 *22  l 22' || screen | grep -q '^  *22 *22  l 22' ||
+inner | grep -q '^>  *22 *22  l 22' || inner | grep -q '^  *22 *22  l 22' ||
 	fail "not from the left edge: $(screen | head -n 5)"
 wait_screen 'zoomed in: o zooms out, Tab goes to the next pane'
 # Tab goes to the other diff pane, zoomed
 keys Tab
-wait_screen '> Staged: a.c  [zoom]'
+wait_active 'Staged: a.c  [zoom]'
 screen | grep -q 'Unstaged: a.c' && fail "Unstaged still shown"
 # o again goes back to the panes
 keys o
-wait_screen '  Files'
-wait_screen '> Staged: a.c'
+wait_screen ' Files'
+wait_active 'Staged: a.c'
 screen | grep -q '\[zoom\]' && fail "still zoomed"
 tui_quit
 
@@ -50,11 +50,11 @@ wait_screen 'Commit HEAD'
 keys J
 wait_screen 'Commit ~1'
 keys Tab o
-wait_screen '> Commit ~1: a.c  [zoom]'
+wait_active 'Commit ~1: a.c  [zoom]'
 wait_screen '+l 10 P1'
 keys K
 wait_screen '+l 20 P2'
-wait_screen '> Commit HEAD: a.c  [zoom]'
+wait_active 'Commit HEAD: a.c  [zoom]'
 keys o
 wait_screen ' Series'
 tui_quit

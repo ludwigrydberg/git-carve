@@ -39,7 +39,7 @@ wait_screen "committed"
 id2=$(git rev-parse --short HEAD)
 wait_screen "git-carve  a,b  $id2 ui: second over two lines"
 # cut at the pane's edge, a mark says it goes on
-wait_screen "HEAD  $id2 ui: second ov>"
+wait_screen "HEAD  $id2 ui: second o>"
 printf 'ui: amended\n' >"$tmp/msg"
 keys A
 wait_screen "amended HEAD"

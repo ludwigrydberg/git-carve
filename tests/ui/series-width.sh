@@ -26,7 +26,7 @@ for TUI_W in 100 120; do
 	tui_start
 	wait_screen 'Commit HEAD'
 	# without the cursor, cut in the pane and whole on the status line
-	screen | grep -q '^\* HEAD .*busy-waiting' &&
+	inner | grep -q '^\* HEAD .*busy-waiting' &&
 		fail "$TUI_W: not cut: $(screen | head -n 5)"
 	wait_screen "\"fdrv: sleep instead of busy-waiting\""
 	keys J
@@ -34,8 +34,8 @@ for TUI_W in 100 120; do
 	screen | tail -n 2 | grep -q "^ ~1 " || fail "$TUI_W: status: $(screen | tail -n 2)"
 	# the pane with the cursor shows every subject whole
 	keys BTab
-	wait_screen "> Series"
-	screen | grep -q "^> ~1 .*fdrv: fix a typo in the probe message" ||
+	wait_active "Series"
+	inner | grep -q "^> ~1 .*fdrv: fix a typo in the probe message" ||
 		fail "$TUI_W: ~1 cut: $(screen | head -n 6)"
 	screen | grep -q '  HEAD .*fdrv: sleep instead of busy-waiting' ||
 		fail "$TUI_W: HEAD cut: $(screen | head -n 6)"
@@ -43,7 +43,7 @@ for TUI_W in 100 120; do
 		fail "$TUI_W: ~2 cut: $(screen | head -n 6)"
 	# and narrow again when it loses the cursor
 	keys Tab
-	wait_screen '> Files'
+	wait_active 'Files'
 	screen | grep -q '  HEAD .*busy-waiting' &&
 		fail "$TUI_W: still wide: $(screen | head -n 6)"
 	tui_quit
