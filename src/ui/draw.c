@@ -4,6 +4,7 @@
 #include "ui_int.h"
 #include "../message.h"
 #include "actions.h"
+#include "dcache.h"
 #include "state.h"
 #include "sview.h"
 #include "term.h"
@@ -1220,7 +1221,12 @@ static void preview_of(struct dpane *pv, const struct dpane *dp, size_t k)
 			      .w = dp->w,
 			      .hscroll = dp->hscroll,
 			      .cur = (size_t)-1 };
-	if (!dp_preview(pv, item_path(k), ui.items[k].sec == SEC_STAGED))
+	if (dp_preview(pv, item_path(k), ui.items[k].sec == SEC_STAGED))
+		return;
+	/* the cache is on its way after a command, or does not hold it */
+	if (dcache_busy() || dcache_wanted())
+		dp_push_note(pv, "(loading)");
+	else
 		dp_push_note(pv, "(shown when the cursor gets here)");
 }
 

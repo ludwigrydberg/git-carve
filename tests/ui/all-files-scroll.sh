@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: MIT
 # gD with files changed just now and diffs longer than the pane. The diff
 # cache does not trust a file changed within two seconds of reading it, so
-# it reads them again and the files after the first one show. Moving down
-# from the last row of the pane into the next file scrolls, and the bar of
-# that file and the cursor stay inside the frame. } goes to the next file.
+# it reads them again, and the files after the first one show as loading
+# until then. Moving down from the last row of the pane into the next file
+# scrolls, and the bar of that file and the cursor stay inside the frame.
+# } goes to the next file.
 . "$(dirname "$0")/../lib-tmux.sh"
 new_repo
 
@@ -25,6 +26,8 @@ tui_start
 wait_screen "M a.c"
 keys g D Tab
 wait_active "Diff (unstaged): a.c  [all files]"
+# while the cache reads them again they are loading, not left for later
+screen | grep -q "shown when the cursor" && fail "not loading: $(screen)"
 wait_screen "b line 10X"
 
 step_keys '}'
