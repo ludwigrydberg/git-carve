@@ -21,7 +21,7 @@ jobs:
     env:
       CC: ${{ matrix.cc }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -57,7 +57,7 @@ jobs:
     name: lint, analyze, coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install the tools
         run: |
