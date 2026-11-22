@@ -2,7 +2,7 @@
 # The git-carve build, described in README.md. On macOS set
 #   PKG_CONFIG_PATH="$(brew --prefix ncurses)/lib/pkgconfig"
 
-VERSION := 1.0.0
+VERSION := 1.1.0
 # On a release tag v$(VERSION) the version is "1.0.0", after it
 # "1.0.0-3-gabc1234" (git describe without the v), and with no tag at all
 # "1.0.0-gabc1234".
