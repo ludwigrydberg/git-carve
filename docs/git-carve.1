@@ -467,7 +467,9 @@ Show the diffs of all files of a section one after another in the diff
 pane, or one file again. Each file starts with a bar with its status,
 path and how many lines it adds and removes. Moving past the end of a
 file goes on into the next one and the Files cursor follows, and the
-keys act on the file the cursor is in. The files after it come from the
+keys act on the file the cursor is in.
+.BR } " and " {
+jump to the next and previous file. The files after it come from the
 diff cache, without running git, and a file the cache does not hold
 loads when the cursor gets to it. After the last change of a file is
 staged, the next file follows. A range stays within one file, and

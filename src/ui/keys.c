@@ -214,7 +214,9 @@ const struct action_info actions[NACTIONS] = {
 			    "the diff pane shows the diffs of all files of its "
 			    "section one after another. Moving past the end of "
 			    "a file goes on into the next, and the Files cursor "
-			    "follows. {all-files} again shows one file" },
+			    "follows, and {next-file} and {prev-file} jump to "
+			    "the next and previous file. {all-files} again "
+			    "shows one file" },
 	[ACT_SERIES_PANE] = { "series-pane", "gS",
 			      "hide or show the Series pane",
 			      "hide the Series pane, or show it again "

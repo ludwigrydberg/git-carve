@@ -1105,7 +1105,8 @@ static void do_all_files(void)
 	ui.all_files = !ui.all_files;
 	set_msg(false, ui.all_files ?
 			       "all files: moving past the end of a file "
-			       "goes on into the next" :
+			       "goes on into the next, {next-file} and "
+			       "{prev-file} jump from file to file" :
 			       "one file at a time");
 }
 
