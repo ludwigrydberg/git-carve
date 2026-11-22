@@ -63,10 +63,10 @@ CORE_SRCS := src/util.c src/git.c src/diff.c src/patch.c src/index.c \
 UI_SRCS := $(wildcard src/ui/*.c)
 CORE_OBJS := $(CORE_SRCS:.c=.o)
 UI_OBJS := $(UI_SRCS:.c=.o)
-HDRS := $(wildcard src/*.h src/ui/*.h)
+HDRS := $(wildcard src/*.h src/ui/*.h src/cli/*.h)
 # what clang-format and tools/style.pl check
-STYLE_FILES = src/*.c src/*.h src/ui/*.c src/ui/*.h tests/unit/*.c \
-	      tests/unit/*.h tests/fuzz/*.c
+STYLE_FILES = src/*.c src/*.h src/ui/*.c src/ui/*.h src/cli/*.c src/cli/*.h \
+	      tests/unit/*.c tests/unit/*.h tests/fuzz/*.c
 
 UNIT_SRCS := $(wildcard tests/unit/test_*.c)
 UNIT_BINS := $(UNIT_SRCS:.c=)
@@ -92,14 +92,17 @@ git-carve: src/main.o $(CORE_OBJS) $(UI_OBJS)
 		$(ALL_LDFLAGS) $(NCURSES_LIBS)
 
 # The commands the tests drive, without curses and not installed by default.
-git-carve-cli: src/cli_main.o src/cli.o $(CORE_OBJS)
-	$(CC) $(ALL_CFLAGS) -o $@ src/cli_main.o src/cli.o $(CORE_OBJS) \
+git-carve-cli: src/cli/cli_main.o src/cli/cli.o $(CORE_OBJS)
+	$(CC) $(ALL_CFLAGS) -o $@ src/cli/cli_main.o src/cli/cli.o $(CORE_OBJS) \
 		$(ALL_LDFLAGS)
 
 # src/%.o also matches src/ui/ui.o, and make 3.81 (on macOS) uses the first
 # matching pattern rule. The ui rule must come first.
 src/ui/%.o: src/ui/%.c $(HDRS) $(FLAGS_STAMP)
 	$(CC) $(ALL_CFLAGS) $(NCURSES_CFLAGS) -c -o $@ $<
+
+src/cli/%.o: src/cli/%.c $(HDRS) $(FLAGS_STAMP)
+	$(CC) $(ALL_CFLAGS) -Isrc -c -o $@ $<
 
 src/%.o: src/%.c $(HDRS) $(FLAGS_STAMP)
 	$(CC) $(ALL_CFLAGS) -c -o $@ $<
@@ -182,8 +185,9 @@ format:
 	clang-format -i $(STYLE_FILES)
 
 clean:
-	rm -f git-carve git-carve-cli src/*.o src/ui/*.o $(UNIT_BINS) \
-		$(FUZZ_BIN) $(FLAGS_STAMP) src/*.gc?? src/ui/*.gc?? tests/*/*.gc??
+	rm -f git-carve git-carve-cli src/*.o src/ui/*.o src/cli/*.o $(UNIT_BINS) \
+		$(FUZZ_BIN) $(FLAGS_STAMP) src/*.gc?? src/ui/*.gc?? src/cli/*.gc?? \
+		tests/*/*.gc??
 	rm -rf tests/unit/*.dSYM tests/fuzz/*.dSYM *.dSYM
 
 .PHONY: all check check-unit check-scenario check-fuzz check-ui check-perf kpi kpi-save fuzz install install-cli uninstall dist format clean lint analyze \

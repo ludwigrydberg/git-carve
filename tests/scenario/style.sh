@@ -8,8 +8,8 @@
 new_repo
 top=$(cd "$TESTS_DIR/.." && pwd)
 cd "$top" || fail "cd $top"
-files=$(ls src/*.c src/*.h src/ui/*.c src/ui/*.h tests/unit/*.c \
-	tests/unit/*.h tests/fuzz/*.c)
+files=$(ls src/*.c src/*.h src/ui/*.c src/ui/*.h src/cli/*.c src/cli/*.h \
+	tests/unit/*.c tests/unit/*.h tests/fuzz/*.c)
 
 # one argument per file
 # shellcheck disable=SC2086

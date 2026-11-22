@@ -9,10 +9,10 @@ man="$TESTS_DIR/../docs/git-carve.1"
 readme="$TESTS_DIR/../README.md"
 [ -f "$man" ] || fail "no man page"
 
-# git-carve-cli help lists every command of its table in src/cli.c. The CLI
-# is internal, and neither the man page nor the README describe it.
+# git-carve-cli help lists every command of its table in src/cli/cli.c. The
+# CLI is internal, and neither the man page nor the README describe it.
 src="$TESTS_DIR/../src"
-cmds=$(sed -n '/cmds\[\] = {/,/^};/p' "$src/cli.c" |
+cmds=$(sed -n '/cmds\[\] = {/,/^};/p' "$src/cli/cli.c" |
 	sed -n 's/^[[:space:]]*{ "\([a-z-]*\)",.*/\1/p')
 [ "$(echo "$cmds" | wc -l)" -gt 30 ] || fail "too few commands found: $cmds"
 for cmd in $cmds; do

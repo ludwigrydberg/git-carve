@@ -7,8 +7,8 @@ set -u
 top=$(cd "$(dirname "$0")/.." && pwd)
 cd "$top" || exit 1
 CC=${CC:-cc}
-SOURCES=$(ls src/*.c src/*.h src/ui/*.c src/ui/*.h tests/unit/*.c \
-	tests/unit/*.h tests/fuzz/*.c)
+SOURCES=$(ls src/*.c src/*.h src/ui/*.c src/ui/*.h src/cli/*.c src/cli/*.h \
+	tests/unit/*.c tests/unit/*.h tests/fuzz/*.c)
 SHELL_FILES=$(ls tests/*.sh tests/*/*.sh tools/*.sh)
 # tools installed with pip install --user (lizard, clang-tidy)
 user_bin=$(python3 -m site --user-base 2>/dev/null)/bin
@@ -134,7 +134,7 @@ analyze_clang() {
 	fl=$(cflags)
 	if have clang-tidy; then
 		rc=0
-		for f in src/*.c src/ui/*.c; do
+		for f in src/*.c src/ui/*.c src/cli/*.c; do
 			# shellcheck disable=SC2086
 			clang-tidy --quiet "$f" -- $fl 2>/dev/null |
 				grep -E ': (error|warning):' && rc=1
@@ -147,7 +147,7 @@ analyze_clang() {
 	}
 	skip_part clang-tidy "not installed (pip install clang-tidy); clang --analyze only"
 	out=$(mktemp) || exit 1
-	for f in src/*.c src/ui/*.c; do
+	for f in src/*.c src/ui/*.c src/cli/*.c; do
 		# shellcheck disable=SC2086
 		clang --analyze $fl -Xanalyzer \
 			-analyzer-disable-checker=security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
@@ -163,7 +163,7 @@ analyze_gcc() {
 	$CC -fanalyzer -x c -c /dev/null -o /dev/null 2>/dev/null || return 0
 	nc=$(ncurses_cflags)
 	out=$(mktemp) || exit 1
-	for f in src/*.c src/ui/*.c; do
+	for f in src/*.c src/ui/*.c src/cli/*.c; do
 		# shellcheck disable=SC2086
 		LC_ALL=C $CC -std=gnu11 -fanalyzer -O1 -Wall -Wextra \
 			-Wno-unused-parameter $nc -DCARVE_VERSION='"x"' \
@@ -239,7 +239,7 @@ coverage() {
 	done
 	# shellcheck disable=SC2086
 	(cd "$dir.build" &&
-	 for f in src/*.c src/ui/*.c; do
+	 for f in src/*.c src/ui/*.c src/cli/*.c; do
 		$gc -o "$(dirname "$f")" "$f" 2>/dev/null |
 			awk -v f="$f" '/^Lines executed:/ {
 				sub(/^Lines executed:/, ""); print f ": " $0; exit }'

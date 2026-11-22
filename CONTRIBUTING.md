@@ -37,7 +37,7 @@ below it, and no two modules use each other:
 | one change | `patch.c` (partial patches, stage/unstage, discard), `index.c` (editing the index), `rename.c`, `conflict.c`, `subst.c` (`:s`) |
 | shared by operations | `opstate.c` (an operation's state and refs), `rebase.c` (rebases, the series), `cdiff.c` (a commit's diff), `message.c` (commit messages) |
 | operations | `split.c`, `series.c` (fixup-to, defer, squash), `move.c` (any commit of the series), `undo.c`, `absorb.c`, `gc.c`, `ops.c` (continue, abort) |
-| frontends | `main.c` and `ui/` (the TUI), `cli_main.c` and `cli.c` (`git-carve-cli`) |
+| frontends | `main.c` and `ui/` (the TUI), `cli/` (`git-carve-cli`) |
 
 The TUI is `ui.c` (main loop, keys), `actions.c` (what keys do),
 `state.c` (loading), `draw.c`, `term.c` (terminal, prompts, overlays),
@@ -96,7 +96,7 @@ Where code goes:
 1. A module uses its own layer and lower ones, never a higher one, and
    modules do not use each other in a cycle. *checked*
 2. The frontends ask the core. There are no git commands in `ui/` or
-   `cli.c`, except the TUI's two background runs. Reading something to
+   `cli/`, except the TUI's two background runs. Reading something to
    show it gets a core function too, and the CLI and the TUI see the
    same.
    *checked*

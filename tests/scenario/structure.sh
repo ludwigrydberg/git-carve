@@ -31,7 +31,7 @@ rank() {
 }
 # edges still to remove, none now, and an entry needs a reason
 allowed_edges=''
-for o in src/*.o src/ui/*.o; do
+for o in src/*.o src/ui/*.o src/cli/*.o; do
 	m=$(echo "$o" | sed 's,^src/,,; s,\.o$,,')
 	nm -g "$o" | awk -v m="$m" '$2 ~ /^[TDBSC]$/ {
 		s = $3; sub(/^_/, "", s); print "D", m, s }'
@@ -61,7 +61,7 @@ grep -v '^ui/\|^cli\|^main' "$tmp/edges" |
 
 # --- only git.c starts processes
 grep -nE '(^|[^a-z_.>])(posix_spawnp?|fork|vfork|execv[pe]*|execl[pe]*|popen|system) *\(' \
-	src/*.c src/ui/*.c | grep -v '^src/git\.c:' >"$tmp/spawn" &&
+	src/*.c src/ui/*.c src/cli/*.c | grep -v '^src/git\.c:' >"$tmp/spawn" &&
 	problem "a process started outside git.c: $(cat "$tmp/spawn")"
 
 # --- the frontends ask the core, not git. The exceptions are the two
@@ -69,7 +69,7 @@ grep -nE '(^|[^a-z_.>])(posix_spawnp?|fork|vfork|execv[pe]*|execl[pe]*|popen|sys
 # with arguments the core builds and read it while keys come.
 allowed_git='src/ui/dcache.c 1
 src/ui/state.c 1'
-for f in src/ui/*.c src/cli.c src/cli_main.c src/main.c; do
+for f in src/ui/*.c src/cli/*.c src/main.c; do
 	n=$(grep -cE '(^|[^a-z_])(git_out|git_quiet|git_line|git_status_of|git_env|git_in|run_git|bg_start)\(' "$f")
 	max=$(echo "$allowed_git" | awk -v f="$f" '$1 == f { print $2 }')
 	[ "$n" -le "${max:-0}" ] ||
@@ -78,7 +78,7 @@ done
 
 # --- no mutable state in the core (zero-initialized data)
 for o in src/*.o; do
-	case $o in src/cli*.o | src/main.o) continue ;; esac
+	case $o in src/main.o) continue ;; esac
 	# (the counters of a coverage build and the markers of the address
 	# sanitizer are not the code's)
 	nm "$o" | awk '$2 ~ /^[BbCc]$/ { print $3 }' |
@@ -89,12 +89,12 @@ done
 [ -s "$tmp/globals" ] && problem "mutable state in the core: $(cat "$tmp/globals")"
 
 # --- options that make git's output parseable are in git.h only
-grep -n 'core\.quotePath' src/*.c src/*.h src/ui/*.c src/ui/*.h |
+grep -n 'core\.quotePath' src/*.c src/*.h src/ui/*.c src/ui/*.h src/cli/*.[ch] |
 	grep -v '^src/git\.h:' >"$tmp/plain" &&
 	problem "use GIT_PLAIN: $(cat "$tmp/plain")"
 
 # --- one name, one helper, no static function name in two files
-for f in src/*.c src/ui/*.c; do
+for f in src/*.c src/ui/*.c src/cli/*.c; do
 	sed -n 's/^static [^(=]*[ *]\([a-z_][a-z0-9_]*\)(.*/\1/p' "$f" | sort -u
 done | sort | uniq -d >"$tmp/statics"
 [ -s "$tmp/statics" ] && problem "static functions of the same name in" \
@@ -108,7 +108,7 @@ grep -h -o '^[a-z_]*()' tests/*.sh tests/*/*.sh | sort | uniq -d \
 
 # --- one text, one place. A string of 25 characters or more written twice
 # is a #define, though git arguments that read the same are fine.
-cat src/*.c src/ui/*.c | grep -ohE '"[^"]{25,}"' | sort | uniq -d |
+cat src/*.c src/ui/*.c src/cli/*.c | grep -ohE '"[^"]{25,}"' | sort | uniq -d |
 	grep -vF -e '"--decorate-refs=' -e ') && saved && ' >"$tmp/dups"
 [ -s "$tmp/dups" ] && problem "the same text twice (make it a #define):" \
 	"$(cat "$tmp/dups")"
@@ -116,7 +116,7 @@ cat src/*.c src/ui/*.c | grep -ohE '"[^"]{25,}"' | sort | uniq -d |
 # --- a global function has a user outside its file (or a unit test)
 cat tests/unit/*.c tests/fuzz/*.c | grep -oE '[a-z_][a-z0-9_]*\(' |
 	tr -d '(' | sort -u >"$tmp/testuses"
-for o in src/*.o src/ui/*.o; do
+for o in src/*.o src/ui/*.o src/cli/*.o; do
 	m=$(echo "$o" | sed 's,^src/,,; s,\.o$,,')
 	nm -g "$o" | awk -v m="$m" '$2 == "T" { s = $3; sub(/^_/, "", s)
 		print "D", m, s }'
@@ -134,7 +134,7 @@ done | awk 'NR == FNR { t[$1] = 1; next }
 # --- functions stay small, at most 150 lines, except the diff parser, a
 # state machine with golden tests
 allowed_long='diff_parse'
-for f in src/*.c src/ui/*.c; do
+for f in src/*.c src/ui/*.c src/cli/*.c; do
 	awk -v F="$f" '
 	/^[A-Za-z_].*\(/ && !/;[ \t]*$/ { sig = $0 }
 	/^\{/ { if (sig != "") { start = NR; name = sig; infn = 1 } next }
@@ -169,7 +169,7 @@ for my $f (@ARGV) {
 		print "$f:$line: a full stop: $t\n" if $t =~ /\.$/;
 		print "$f:$line: upper case: $t\n" if $t =~ /^[A-Z][a-z]/;
 	}
-}' src/*.c src/ui/*.c >"$tmp/refusals"
+}' src/*.c src/ui/*.c src/cli/*.c >"$tmp/refusals"
 [ -s "$tmp/refusals" ] && problem "refusal texts: $(cat "$tmp/refusals")"
 
 # --- dropped features are gone from the code and the user documentation
