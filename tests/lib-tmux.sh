@@ -27,9 +27,10 @@ screen() {
 }
 
 # inner: the screen without its first column, the left line of the frames
-# when the panes are stacked or zoomed, or of the lists side by side
+# when the panes are stacked or zoomed, or of the lists side by side. GNU
+# cut -c counts bytes, so the UTF-8 lines are taken off whole.
 inner() {
-	screen | cut -c2-
+	screen | sed -e 's/^┃//;t' -e 's/^│//;t' -e 's/^.//'
 }
 
 # wait_inner <regex> is wait_match on inner.
