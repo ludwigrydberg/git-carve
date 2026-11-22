@@ -1253,13 +1253,14 @@ static void draw_all_files(struct dpane *dp, long k, bool active)
 			dp->lead = (int)pv.nrows + 1;
 	}
 	/* the lead scrolls away first when the cursor goes down */
-	rows = dp->h - dp->lead;
-	if (dp->cur >= dp->top + (size_t)rows) {
-		size_t over = dp->cur - dp->top - (size_t)rows + 1;
+	if (dp->cur >= dp->top) {
+		size_t upto = dp->cur - dp->top + 1;
+		int room = upto < (size_t)dp->h ? dp->h - (int)upto : 0;
 
-		dp->lead -= over < (size_t)dp->lead ? (int)over : dp->lead;
-		rows = dp->h - dp->lead;
+		if (dp->lead > room)
+			dp->lead = room;
 	}
+	rows = dp->h - dp->lead;
 	if (dp->cur < dp->top)
 		dp->top = dp->cur;
 	if (dp->cur >= dp->top + (size_t)rows)

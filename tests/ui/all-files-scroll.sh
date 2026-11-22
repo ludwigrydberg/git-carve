@@ -1,8 +1,10 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# gD with files changed just now. The diff cache does not trust a file
-# changed within two seconds of reading it, so it reads them again and the
-# files after the first one show.
+# gD with files changed just now and diffs longer than the pane. The diff
+# cache does not trust a file changed within two seconds of reading it, so
+# it reads them again and the files after the first one show. Moving down
+# from the last row of the pane into the next file scrolls, and the bar of
+# that file and the cursor stay inside the frame. } goes to the next file.
 . "$(dirname "$0")/../lib-tmux.sh"
 new_repo
 
@@ -25,4 +27,13 @@ keys g D Tab
 wait_active "Diff (unstaged): a.c  [all files]"
 wait_screen "b line 10X"
 
+step_keys '}'
+wait_active "Diff (unstaged): b.c  [all files]"
+step_keys G
+cursor_row | grep -q 'b line 53' || fail "not at the end of b.c: $(screen)"
+step_keys j
+wait_active "Diff (unstaged): c.c  [all files]"
+cursor_row | grep -q '@@ -6,7 +6,7 @@' ||
+	fail "the cursor is not on c.c's first row: $(screen)"
+screen | cut -c33- | grep -q '^ M c\.c ' || fail "no bar of c.c: $(screen)"
 tui_quit
