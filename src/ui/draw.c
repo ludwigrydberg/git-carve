@@ -597,6 +597,33 @@ static void draw_pane_frame(int pane, const char *label, const char *path)
 }
 
 /*
+ * A thumb on the right line of a pane's frame when the pane shows rows
+ * top to top + shown of total. Its length and place say how much there
+ * is and where the view is.
+ */
+static void draw_scroll_thumb(int pane, size_t top, size_t shown, size_t total)
+{
+	attr_t a = role_attr(ui.active == pane ? C_FRAME_ACT : C_FRAME) |
+		   A_REVERSE;
+	const struct box *b = &ui.lay.box[pane];
+	int track = b->h - 2, len, at, i;
+
+	if (track < 2 || total <= shown)
+		return;
+	len = (int)((size_t)track * shown / total);
+	if (len < 1)
+		len = 1;
+	if (top + shown >= total)
+		at = track - len;
+	else
+		at = (int)((size_t)(track - len) * top / (total - shown));
+	attron(a);
+	for (i = 0; i < len; i++)
+		mvaddch(b->y + 1 + at + i, b->x + b->w - 1, ' ');
+	attroff(a);
+}
+
+/*
  * The message pane. It shows the commit message being written as it is,
  * with comment lines dim, or what e and c do without one.
  */
@@ -621,6 +648,8 @@ static void draw_message(void)
 		snprintf(title, sizeof(title), "Message of %s", lab);
 	}
 	draw_pane_frame(P_MESSAGE, title, NULL);
+	draw_scroll_thumb(P_MESSAGE, ui.draft_top, (size_t)ui.lay.msg_h,
+			  count_lines(p, m->len));
 	for (i = 0; i < ui.lay.msg_h; i++)
 		fill_line(y + i, x, w);
 	if (!m->len) {
@@ -1381,9 +1410,20 @@ static void diff_area(void)
 	if (ui.lay.msg_on) {
 		const struct strbuf *m = pane_message();
 
+		/* at most a third of the rows, from 8 to 12 lines */
+		int most = rows / 3;
+
+		if (most < 8)
+			most = 8;
+		if (most > 12)
+			most = 12;
 		lines = (int)count_lines(sb_str(m), m->len);
+		if (lines < 3)
+			lines = 3;
+		if (lines > most)
+			lines = most;
 		/* and the bottom line of its frame */
-		ui.lay.msg_h = (lines < 3 ? 3 : lines > 8 ? 8 : lines) + 1;
+		ui.lay.msg_h = lines + 1;
 		/* the diff keeps six rows at least */
 		if (rows - ui.lay.msg_h - 1 < 7)
 			ui.lay.msg_h = rows - 8;
