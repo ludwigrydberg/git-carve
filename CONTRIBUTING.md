@@ -234,6 +234,12 @@ subsystems are `diff`, `patch`, `index`, `split`, `series`, `cli`, `ui`,
 `undo`, `absorb`, `rename`, `tests`, `build`, `docs`. `make check` passes
 for every commit.
 
+The summary describes what the change does, in the imperative mood, as
+in `ui: frame every pane`. It is not an order to the code. The body
+then adds short context, such as what the change fixes. Keep both
+short, in plain sentences without `,` `'` `;` or `:` (the colon after
+the subsystem aside).
+
 Documentation moves with the code. A change updates `README.md`, the
 man page (`docs/git-carve.1`) where they describe it.
 These describe the TUI only. The commands of `git-carve-cli` are an
