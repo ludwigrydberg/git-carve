@@ -1889,6 +1889,20 @@ static void offer_cleanup(void)
 	sb_release(&out);
 }
 
+/*
+ * The gits of the first screen that need no answer of another run side by
+ * side with git status, the slowest of them.
+ */
+static void prefetch_first_screen(struct repo *r)
+{
+	struct argv a = ARGV_INIT;
+
+	status_args(&a, false);
+	repo_prefetch(r, &a);
+	argv_clear(&a);
+	repo_prefetch_startup(r);
+}
+
 int ui_main(struct repo *r, const char *range)
 {
 	int c;
@@ -1903,6 +1917,7 @@ int ui_main(struct repo *r, const char *range)
 	 * pause
 	 */
 	r->undo_defer = true;
+	prefetch_first_screen(r);
 	/*
 	 * the Series pane shows your series, and a bad range is reported
 	 * first. The title comes first, since it knows the branch the
@@ -1986,6 +2001,7 @@ int ui_main(struct repo *r, const char *range)
 	init_colors();
 	ui.active = P_FILES;
 	reload();
+	repo_prefetch_drop(r);
 	offer_cleanup();
 	for (;;) {
 		draw();

@@ -117,7 +117,7 @@ int load_status_mode(struct repo *r, bool untracked, struct file_status **out,
 	int rc;
 
 	status_args(&a, untracked);
-	rc = run_git(&a, NULL, &o, &e);
+	rc = git_argv(r, &a, &o, &e);
 	if (rc)
 		git_fail(r, "git status", &e);
 	argv_clear(&a);

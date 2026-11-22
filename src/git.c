@@ -288,6 +288,14 @@ static void trace(const char *const *argv, long long t0)
 	sb_release(&l);
 }
 
+/* The questions repo_prefetch_startup asks ahead */
+#define HEAD_INFO_ARGS                                     \
+	"log", "-1", "--no-color", "--decorate-refs=HEAD", \
+		"--decorate-refs=refs/heads/", "--format=%h %s%n%D"
+#define CONFIG_ARGS "config", "-z", "--list"
+#define UPSTREAM_ARGS \
+	"rev-parse", "-q", "--verify", "--symbolic-full-name", "@{upstream}"
+
 const char *const git_quiet_editor[] = { GIT_EDITOR_QUIET, NULL };
 
 static void write_all(int fd, const char *p, size_t n)
@@ -517,7 +525,10 @@ static int vgit_env(struct repo *r, const char *const *env, const char *in,
 
 	while ((s = va_arg(ap, const char *)))
 		argv_push(&a, s);
-	rc = run_git(&a, &o, out, &errb);
+	if (in || env)
+		rc = run_git(&a, &o, out, &errb);
+	else
+		rc = git_argv(r, &a, out, record ? &errb : NULL);
 	if (rc && record) {
 		struct strbuf what = STRBUF_INIT;
 
@@ -851,6 +862,7 @@ void repo_release(struct repo *r)
 {
 	size_t i;
 
+	repo_prefetch_drop(r);
 	for (i = 0; i < r->nrelease; i++)
 		r->release[i](r);
 	r->nrelease = 0;
@@ -1063,6 +1075,113 @@ void bg_stop(struct bg_proc *bp)
 	sb_release(&bp->out);
 }
 
+struct prefetch {
+	struct argv args;
+	struct bg_proc bp;
+};
+
+void repo_prefetch(struct repo *r, const struct argv *args)
+{
+	struct prefetch *p;
+	size_t i;
+
+	r->pre = xrealloc(r->pre, (r->npre + 1) * sizeof(*r->pre));
+	p = &r->pre[r->npre];
+	memset(p, 0, sizeof(*p));
+	p->bp.fd = -1;
+	if (bg_start(&p->bp, args))
+		return;
+	for (i = 0; i < args->n; i++)
+		argv_push(&p->args, args->v[i]);
+	r->npre++;
+}
+
+static bool same_args(const struct argv *a, const struct argv *b)
+{
+	size_t i;
+
+	if (a->n != b->n)
+		return false;
+	for (i = 0; i < a->n; i++)
+		if (strcmp(a->v[i], b->v[i]))
+			return false;
+	return true;
+}
+
+static int bg_wait(struct bg_proc *bp)
+{
+	struct pollfd pfd = { .events = POLLIN };
+	int rc;
+
+	while (!(rc = bg_pump(bp))) {
+		pfd.fd = bp->fd;
+		poll(&pfd, 1, -1);
+	}
+	return rc;
+}
+
+/*
+ * The exit status of the prefetched git args, with its output added to
+ * out, or -1 when there is none. Its stderr is gone, so one that failed
+ * counts as none when the error is wanted.
+ */
+static int take_prefetch(struct repo *r, const struct argv *args,
+			 struct strbuf *out, bool want_err)
+{
+	struct prefetch p;
+	size_t i;
+	int rc;
+
+	for (i = 0; i < r->npre && !same_args(&r->pre[i].args, args); i++)
+		;
+	if (i == r->npre)
+		return -1;
+	p = r->pre[i];
+	r->pre[i] = r->pre[--r->npre];
+	rc = bg_wait(&p.bp) == 1 ? p.bp.status : -1;
+	if (rc > 0 && want_err)
+		rc = -1;
+	if (rc >= 0 && out)
+		sb_add(out, p.bp.out.buf, p.bp.out.len);
+	bg_stop(&p.bp);
+	argv_clear(&p.args);
+	return rc;
+}
+
+int git_argv(struct repo *r, const struct argv *args, struct strbuf *out,
+	     struct strbuf *errb)
+{
+	int rc = r->npre ? take_prefetch(r, args, out, errb) : -1;
+
+	return rc >= 0 ? rc : run_git(args, NULL, out, errb);
+}
+
+void repo_prefetch_startup(struct repo *r)
+{
+	struct argv a[] = { ARGV_INIT, ARGV_INIT, ARGV_INIT };
+	size_t i;
+
+	argv_pushl(&a[0], HEAD_INFO_ARGS, NULL);
+	argv_pushl(&a[1], CONFIG_ARGS, NULL);
+	argv_pushl(&a[2], UPSTREAM_ARGS, NULL);
+	for (i = 0; i < ARRAY_SIZE(a); i++) {
+		repo_prefetch(r, &a[i]);
+		argv_clear(&a[i]);
+	}
+}
+
+void repo_prefetch_drop(struct repo *r)
+{
+	while (r->npre) {
+		struct prefetch *p = &r->pre[--r->npre];
+
+		bg_stop(&p->bp);
+		argv_clear(&p->args);
+	}
+	free(r->pre);
+	r->pre = NULL;
+}
+
 const char *repo_git_path(struct repo *r, const char *name)
 {
 	struct strbuf abs = STRBUF_INIT;
@@ -1216,7 +1335,7 @@ static void config_load(struct repo *r)
 		return;
 	r->cfg_loaded = true;
 	/* Nothing set at all is exit 0 too. A failure leaves it empty. */
-	if (git_out(r, &out, "config", "-z", "--list", NULL)) {
+	if (git_out(r, &out, CONFIG_ARGS, NULL)) {
 		sb_reset(&r->err);
 		sb_release(&out);
 		return;
@@ -1878,8 +1997,7 @@ char *parent_of(struct repo *r, const char *commit)
 
 char *repo_upstream(struct repo *r)
 {
-	char *up = git_line(r, "rev-parse", "-q", "--verify",
-			    "--symbolic-full-name", "@{upstream}", NULL);
+	char *up = git_line(r, UPSTREAM_ARGS, NULL);
 
 	sb_reset(&r->err);
 	if (up && !*up) {
@@ -1895,9 +2013,7 @@ int repo_head_info(struct repo *r, char **branch, char **line)
 	char *nl;
 
 	*branch = *line = NULL;
-	if (!git_out(r, &out, "log", "-1", "--no-color", "--decorate-refs=HEAD",
-		     "--decorate-refs=refs/heads/", "--format=%h %s%n%D",
-		     NULL) &&
+	if (!git_out(r, &out, HEAD_INFO_ARGS, NULL) &&
 	    (nl = strchr(sb_str(&out), '\n'))) {
 		const char *arrow = strstr(nl + 1, "HEAD -> "), *end;
 

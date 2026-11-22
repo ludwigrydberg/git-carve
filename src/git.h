@@ -110,6 +110,9 @@ struct repo {
 	/* how modules that keep caches here free them (repo_on_release) */
 	void (*release[4])(struct repo *r);
 	size_t nrelease;
+	/* gits started early for the first screen (repo_prefetch) */
+	struct prefetch *pre;
+	size_t npre;
 	bool tty; /* may run interactive children (editor) */
 };
 
@@ -227,6 +230,12 @@ int run_git(const struct argv *args, const struct run_opts *o,
  * on stderr goes to r->err.
  */
 int git_out(struct repo *r, struct strbuf *out, ...) SENTINEL;
+/*
+ * run_git with no input. A prefetched git with the same arguments
+ * answers it if there is one.
+ */
+int git_argv(struct repo *r, const struct argv *args, struct strbuf *out,
+	     struct strbuf *errb);
 /* git_out without the output. */
 int git_quiet(struct repo *r, ...) SENTINEL;
 /* The exit status only, with no error recorded. */
@@ -271,6 +280,17 @@ static inline bool bg_running(const struct bg_proc *bp)
 {
 	return bp->pid > 0;
 }
+
+/*
+ * Start git args in the background now, for a question asked soon with
+ * the same arguments. The first git_out or git_argv asking it takes its
+ * output. One that failed runs again when its error is shown.
+ * repo_prefetch_drop stops the ones nobody asked.
+ */
+void repo_prefetch(struct repo *r, const struct argv *args);
+/* The HEAD line, the configuration and the upstream, asked at startup. */
+void repo_prefetch_startup(struct repo *r);
+void repo_prefetch_drop(struct repo *r);
 
 /*
  * Run the editor on file (at line if > 0) with the terminal attached.
